@@ -22,4 +22,9 @@ class Organisasi extends Model
         'nama_penerima',
         'id_role',
     ];
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'id_role');
+    }
 }
