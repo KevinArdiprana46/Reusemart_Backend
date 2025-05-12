@@ -2,30 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Laravel\Sanctum\HasApiTokens;
-use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\Log;
 use App\Models\Pembeli;
-use App\Models\Organisasi;
 use App\Models\Penitip;
+use App\Models\Organisasi;
 use App\Models\Pegawai;
+use App\Models\Role;
 
 class LoginController extends Controller
 {
     public function login(Request $request)
     {
         $request->validate([
-            'email' => 'required|email',
+            'email'    => 'required|email',
             'password' => 'required|string',
         ]);
 
         $email = $request->email;
         $password = $request->password;
 
-        // Cek di masing-masing tabel
+        $user = null;
+        $role = null;
+        $isPegawai = false;
+
         if ($user = Pembeli::where('email', $email)->first()) {
             $role = 'pembeli';
         } elseif ($user = Organisasi::where('email', $email)->first()) {
@@ -33,8 +34,22 @@ class LoginController extends Controller
         } elseif ($user = Penitip::where('email', $email)->first()) {
             $role = 'penitip';
         } elseif ($user = Pegawai::where('email', $email)->first()) {
-            $role = 'pegawai';
+            $isPegawai = true;
+
+            switch ($user->id_role) {
+                case 5:
+                    $role = 'owner';
+                    break;
+                case 6:
+                    $role = 'admin';
+                    break;
+                case 1:
+                default:
+                    $role = 'pegawai';
+                    break;
+            }
         } else {
+            Log::info("Login gagal: Email tidak ditemukan ($email)");
             return response()->json(['message' => 'Email tidak ditemukan.'], 404);
         }
 
@@ -55,11 +70,13 @@ class LoginController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
+        Log::info("User login: {$user->email} sebagai role: $role");
+
         return response()->json([
-            'message' => 'Login berhasil',
-            'role' => $role,
             'token' => $token,
-            'user' => $user,
+            'token_type'   => 'Bearer',
+            'role'         => $role,
+            'user'         => $user,
         ]);
     }
 }

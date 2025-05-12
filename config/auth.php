@@ -74,10 +74,14 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Organisasi::class,
         ],
-        // 'penitips' => [
-        //     'driver' => 'eloquent',
-        //     'model' => App\Models\Penitip::class,
-        // ],
+        'penitips' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Penitip::class,
+        ],
+        'pegawais' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Pegawai::class,
+        ],
     ],
 
 

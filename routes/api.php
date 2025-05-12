@@ -66,9 +66,22 @@ Route::prefix('penitip')->middleware('auth:sanctum')->group(function () {
     Route::delete('/delete/{id}', [PenitipController::class, 'destroy']);
 });
 
-// =======================
-// 🏢 ORGANISASI
-// =======================
+//ROUTE ORGANISASI(REQUEST DONASI)
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/donasi', [DonasiController::class, 'index']);
+    Route::post('/donasi', [DonasiController::class, 'store']);
+    Route::get('/donasi/diminta', [DonasiController::class, 'getDonasiDiminta']);
+    Route::get('/donasi/riwayat', [DonasiController::class, 'getRiwayatDonasi']);
+    Route::get('/donasi/diterima', [DonasiController::class, 'getDonasiDiterima']);
+    Route::get('/donasi/{id}', [DonasiController::class, 'show']);
+    Route::put('/donasi/{id}', [DonasiController::class, 'update']);
+    Route::delete('/donasi/{id}', [DonasiController::class, 'destroy']);
+    Route::get('/search/donasi', [DonasiController::class, 'search']);
+    Route::post('/donasi/kirim/{id}', [DonasiController::class, 'kirimDonasi']);
+    Route::get('/barang/donasi', [BarangController::class, 'getBarangDonasi']);
+});
+
+//ROUTE CRUDS ORGANISASI
 Route::prefix('organisasi')->group(function () {
     Route::post('/register', [OrganisasiController::class, 'store']);
 });
@@ -112,6 +125,7 @@ Route::middleware('auth:sanctum')->group(function () {
 // =======================
 Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PegawaiController::class, 'index']);
+    Route::get('/pegawai/daftar', [PegawaiController::class, 'getDaftarPegawai']);
     Route::post('/store', [PegawaiController::class, 'store']);
     Route::get('/{id}', [PegawaiController::class, 'show']);
     Route::put('/update/{id}', [PegawaiController::class, 'update']);

@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Donasi;
 use App\Models\Barang;
 use App\Models\Penitip;
+use Illuminate\Support\Facades\Log;
 
 class DonasiController extends Controller
 {
@@ -88,12 +89,25 @@ class DonasiController extends Controller
 
     public function getRiwayatDonasi()
     {
+        // Logging awal untuk memastikan method ini dipanggil
+        // Log::info('Masuk ke getRiwayatDonasi()');
+
+        // $user = auth()->user();
+
+        // if (!$user) {
+        //     Log::warning('Akses ditolak: tidak ada user terautentikasi.');
+        //     return response()->json(['message' => 'Unauthenticated'], 401);
+        // }
+
+        // Log::info("User yang mengakses: {$user->email} | role: {$user->id_role}");
+
         $riwayat = Donasi::with(['organisasi', 'barang'])
             ->where('status_donasi', '!=', 'diminta')
             ->get();
 
         return response()->json($riwayat);
     }
+
 
     public function getDonasiDiterima()
     {
