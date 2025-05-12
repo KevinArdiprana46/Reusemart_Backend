@@ -4,6 +4,7 @@ use App\Http\Controllers\AlamatController;
 use App\Http\Controllers\BarangController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DonasiController;
+use App\Http\Controllers\PenitipanController;
 use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\OrganisasiController;
 use App\Http\Controllers\PembeliController;
@@ -100,7 +101,6 @@ Route::middleware('auth:sanctum')->prefix('organisasi')->group(function () {
 //ROUTE BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
-    Route::get('/penitip', [PenitipController::class, 'showbarang']);
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
     Route::get('/{id}', [BarangController::class, 'show']);
     Route::get('/', [BarangController::class, 'index']);
@@ -110,6 +110,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-pembelian', [TransaksiController::class, 'riwayatPembelian']);
 });
 
+//ROUTE PENITIPAN
+
+Route::middleware('auth:sanctum')->prefix('penitipan')->group(function () {
+    Route::get('/barang', [PenitipanController::class, 'showBarangPenitip']);
+});
 
 
 
