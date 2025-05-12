@@ -2,139 +2,184 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Penitip;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
+use App\Models\Penitip;
 
 class PenitipController extends Controller
 {
-    // Tampilkan semua penitip
-    public function index()
+    // ✅ Register Penitip
+    public function register(Request $request)
     {
-        return response()->json(Penitip::all());
-    }
-
-    // Tambah penitip baru
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'id_alamat'     => 'nullable|integer',
-            'badge'         => 'required|string|max:255',
-            'poin_sosial'   => 'nullable|integer',
-            'nama_lengkap'  => 'required|string|max:255',
-            'no_telepon'    => 'required|string|max:20',
-            'email'         => 'required|email',
-            'password'      => 'required|string|min:6',
-            'gender'        => 'required|string',
+        $validator = Validator::make($request->all(), [
+            'badge' => 'required|string|max:255',
+            'nama_lengkap' => 'required|string|max:255',
+            'gender' => 'required|in:L,P',
+            'email' => 'required|email|unique:penitip,email',
+            'no_telepon' => 'required|string|max:20',
+            'password' => 'required|string|min:6',
             'tanggal_lahir' => 'required|date',
-            'komisi'        => 'required|numeric',
-            'bonus'         => 'required|numeric',
-            'id_role'       => 'required|integer',
-            'no_ktp'        => 'required|string|max:50|unique:penitip,no_ktp',
-            'image_user'    => 'required|image|mimes:jpeg,png,jpg',
-            'foto_ktp'      => 'required|image|mimes:jpeg,png,jpg',
+            'poin_sosial' => 'nullable|integer|min:0',
+            'komisi' => 'required|numeric',
+            'bonus' => 'required|numeric',
+            'no_ktp' => 'required|string|max:50|unique:penitip,no_ktp',
+            'image_user' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'foto_ktp' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
-    
-        // Default value untuk poin_sosial
-        $validated['poin_sosial'] = $validated['poin_sosial'] ?? 0;
-    
-        // Upload dan hash password
-        $imageUserPath = $request->file('image_user')->store('penitip', 'public');
-        $fotoKtpPath   = $request->file('foto_ktp')->store('penitip', 'public');
-    
-        $validated['image_user'] = $imageUserPath;
-        $validated['foto_ktp']   = $fotoKtpPath;
-        $validated['password']   = Hash::make($validated['password']);
-    
-        $penitip = Penitip::create($validated);
-    
-        return response()->json([
-            'message' => 'Penitip berhasil ditambahkan',
-            'data' => $penitip,
-        ], 201);
-    }
-    
 
-    // Tampilkan satu penitip
-    public function show($id)
-    {
-        $penitip = Penitip::findOrFail($id);
-        return response()->json($penitip);
-    }
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-    // Update penitip
-    public function update(Request $request, $id)
-    {
-        $penitip = Penitip::findOrFail($id);
+        // Handle image uploads
+        $imageUserName = $request->hasFile('image_user')
+            ? time() . '_image_' . preg_replace('/\s+/', '_', $request->file('image_user')->getClientOriginalName())
+            : 'default.jpg';
 
-        $validated = $request->validate([
-            'id_alamat'     => 'nullable|integer',
-            'badge'         => 'sometimes|required|string|max:255',
-            'poin_sosial'   => 'nullable|integer',
-            'nama_lengkap'  => 'sometimes|required|string|max:255',
-            'no_telepon'    => 'sometimes|required|string|max:20',
-            'email'         => 'sometimes|required|email',
-            'password'      => 'sometimes|required|string|min:6',
-            'gender'        => 'sometimes|required|string',
-            'tanggal_lahir' => 'sometimes|required|date',
-            'komisi'        => 'sometimes|required|numeric',
-            'bonus'         => 'sometimes|required|numeric',
-            'id_role'       => 'sometimes|required|integer',
-            'no_ktp'        => 'sometimes|unique:penitip,no_ktp,' . $id . ',id_penitip',
-            'image_user'    => 'sometimes|image|mimes:jpeg,png,jpg|max:2048',
-            'foto_ktp'      => 'sometimes|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+        $fotoKtpName = $request->hasFile('foto_ktp')
+            ? time() . '_ktp_' . preg_replace('/\s+/', '_', $request->file('foto_ktp')->getClientOriginalName())
+            : null;
 
         if ($request->hasFile('image_user')) {
-            if ($penitip->image_user && Storage::disk('public')->exists($penitip->image_user)) {
-                Storage::disk('public')->delete($penitip->image_user);
-            }
-            $validated['image_user'] = $request->file('image_user')->store('penitip', 'public');
+            $request->file('image_user')->move(public_path('storage/foto_penitip'), $imageUserName);
         }
 
         if ($request->hasFile('foto_ktp')) {
-            if ($penitip->foto_ktp && Storage::disk('public')->exists($penitip->foto_ktp)) {
-                Storage::disk('public')->delete($penitip->foto_ktp);
-            }
-            $validated['foto_ktp'] = $request->file('foto_ktp')->store('penitip', 'public');
+            $request->file('foto_ktp')->move(public_path('storage/foto_ktp'), $fotoKtpName);
         }
 
-        if (isset($validated['password'])) {
-            $validated['password'] = Hash::make($validated['password']);
-        }
-
-        $penitip->update($validated);
+        $penitip = Penitip::create([
+            'badge' => $request->badge,
+            'nama_lengkap' => $request->nama_lengkap,
+            'gender' => $request->gender,
+            'email' => $request->email,
+            'no_telepon' => $request->no_telepon,
+            'password' => Hash::make($request->password),
+            'tanggal_lahir' => $request->tanggal_lahir,
+            'poin_sosial' => $request->poin_sosial ?? 0,
+            'komisi' => $request->komisi,
+            'bonus' => $request->bonus,
+            'no_ktp' => $request->no_ktp,
+            'image_user' => $imageUserName,
+            'foto_ktp' => $fotoKtpName,
+            'id_role' => 3,
+        ]);
 
         return response()->json([
-            'message' => 'Penitip berhasil diperbarui',
-            'data' => $penitip,
+            'message' => 'Registrasi penitip berhasil',
+            'data' => $penitip
+        ], 201);
+    }
+
+    // ✅ Profile Penitip
+    public function profile(Request $request)
+    {
+        $penitip = Penitip::find(auth()->id());
+
+        if (!$penitip) {
+            return response()->json(['message' => 'Data penitip tidak ditemukan.'], 404);
+        }
+
+        return response()->json($penitip);
+    }
+
+    // ✅ Update Profil Penitip
+    public function update(Request $request)
+    {
+        $penitip = Penitip::find(auth()->id());
+
+        if (!$penitip) {
+            return response()->json(['message' => 'Data penitip tidak ditemukan.'], 404);
+        }
+
+        $request->validate([
+            'nama_lengkap' => 'sometimes|string|max:255',
+            'no_telepon' => 'sometimes|string|max:20',
+            'tanggal_lahir' => 'sometimes|date',
+            'password' => 'sometimes|string|min:6',
+            'image_user' => 'sometimes|image|mimes:jpg,jpeg,png|max:2048',
+            'foto_ktp' => 'sometimes|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        // Hapus dan upload image_user baru
+        if ($request->hasFile('image_user') && $penitip->image_user !== 'default.jpg') {
+            $oldPath = public_path('storage/foto_penitip/' . $penitip->image_user);
+            if (file_exists($oldPath))
+                unlink($oldPath);
+
+            $imageName = time() . '_image_' . preg_replace('/\s+/', '_', $request->file('image_user')->getClientOriginalName());
+            $request->file('image_user')->move(public_path('storage/foto_penitip'), $imageName);
+            $penitip->image_user = $imageName;
+        }
+
+        // Hapus dan upload foto_ktp baru
+        if ($request->hasFile('foto_ktp')) {
+            $oldKtp = public_path('storage/foto_ktp/' . $penitip->foto_ktp);
+            if (file_exists($oldKtp))
+                unlink($oldKtp);
+
+            $ktpName = time() . '_ktp_' . preg_replace('/\s+/', '_', $request->file('foto_ktp')->getClientOriginalName());
+            $request->file('foto_ktp')->move(public_path('storage/foto_ktp'), $ktpName);
+            $penitip->foto_ktp = $ktpName;
+        }
+
+        $data = $request->except(['image_user', 'foto_ktp']);
+        if (!empty($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        }
+
+        $penitip->update($data);
+
+        return response()->json([
+            'message' => 'Profil penitip berhasil diperbarui.',
+            'data' => $penitip
         ]);
     }
 
-    // Hapus penitip
+    // ❌ Delete Penitip
     public function destroy($id)
     {
-        $penitip = Penitip::findOrFail($id);
+        $penitip = Penitip::find($id);
 
-        if ($penitip->image_user && Storage::disk('public')->exists($penitip->image_user)) {
-            Storage::disk('public')->delete($penitip->image_user);
+        if (!$penitip) {
+            return response()->json(['message' => 'Penitip tidak ditemukan.'], 404);
         }
-        if ($penitip->foto_ktp && Storage::disk('public')->exists($penitip->foto_ktp)) {
-            Storage::disk('public')->delete($penitip->foto_ktp);
+
+        if ($penitip->image_user && $penitip->image_user !== 'default.jpg') {
+            $imagePath = public_path('storage/foto_penitip/' . $penitip->image_user);
+            if (file_exists($imagePath))
+                unlink($imagePath);
+        }
+
+        if ($penitip->foto_ktp) {
+            $ktpPath = public_path('storage/foto_ktp/' . $penitip->foto_ktp);
+            if (file_exists($ktpPath))
+                unlink($ktpPath);
         }
 
         $penitip->delete();
 
-        return response()->json(['message' => 'Penitip berhasil dihapus']);
+        return response()->json(['message' => 'Penitip berhasil dihapus.']);
     }
 
-    // Cari penitip berdasarkan nama
+    // 🔍 Search Penitip by nama/email/telepon
     public function search(Request $request)
     {
         $query = $request->query('q');
-        $result = Penitip::where('nama_lengkap', 'like', "$query%")
+
+        if (!$query) {
+            return response()->json(['message' => 'Query pencarian kosong.'], 400);
+        }
+
+        $results = Penitip::where('nama_lengkap', 'like', "%{$query}%")
+            ->orWhere('email', 'like', "%{$query}%")
+            ->orWhere('no_telepon', 'like', "%{$query}%")
             ->get();
-        return response()->json($result);
+
+        return response()->json([
+            'message' => 'Hasil pencarian penitip',
+            'data' => $results
+        ]);
     }
 }

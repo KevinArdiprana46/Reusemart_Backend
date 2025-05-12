@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AlamatController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DonasiController;
@@ -88,13 +89,13 @@ Route::prefix('alamat')->middleware('auth:sanctum')->group(function () {
 
 
 //ROUTE PEGAWAI CS
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/penitip', [PenitipController::class, 'index']);
-    Route::post('/penitip', [PenitipController::class, 'store']);
-    Route::get('/penitip/{id}', [PenitipController::class, 'show']);
-    Route::put('/penitip/{id}', [PenitipController::class, 'update']);
-    Route::delete('/penitip/{id}', [PenitipController::class, 'destroy']);
-    Route::get('/search/penitip', [PenitipController::class, 'search']);
+Route::post('penitip/register', [PenitipController::class, 'register']);        
+Route::prefix('penitip')->middleware('auth:sanctum')->group(function () {
+    
+    Route::get('/profile', [PenitipController::class, 'profile']);           
+    Route::post('/update', [PenitipController::class, 'update']);           
+    Route::delete('/{id}', [PenitipController::class, 'destroy']);         
+    Route::get('/search', [PenitipController::class, 'search']);             
 });
 
 //ROUTE ORGANISASI(REQUEST DONASI)
@@ -121,7 +122,11 @@ Route::middleware('auth:sanctum')->prefix('organisasi')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-pembelian', [TransaksiController::class, 'riwayatPembelian']);
+    Route::get('/riwayat-penjualan', [TransaksiController::class, 'riwayatPenjualan']);
 });
+
+Route::middleware('auth:sanctum')->post('/admin/reset-password/pegawai', [AdminController::class, 'resetPasswordPegawai']);
+
 
 
 

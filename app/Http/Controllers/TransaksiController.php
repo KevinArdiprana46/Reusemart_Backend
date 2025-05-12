@@ -60,4 +60,64 @@ class TransaksiController extends Controller
         ]);
     }
 
+    public function riwayatPenjualan()
+    {
+        $penitip = Auth::guard('sanctum')->user();
+
+        if (!$penitip || !isset($penitip->id_penitip)) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $transaksi = Transaksi::with(['detailtransaksi.barang'])
+            ->whereHas('detailtransaksi.barang', function ($query) use ($penitip) {
+                $query->where('id_penitip', $penitip->id_penitip);
+            })
+            ->orderByDesc('created_at')
+            ->get();
+
+        if ($transaksi->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada riwayat penjualan.',
+                'data' => [],
+            ], 200);
+        }
+
+        // Format data untuk response
+        $data = $transaksi->map(function ($trx) use ($penitip) {
+            // Filter hanya barang dari penitip ini
+            $detail = $trx->detailtransaksi->filter(function ($d) use ($penitip) {
+                return $d->barang && $d->barang->id_penitip == $penitip->id_penitip;
+            })->map(function ($d) {
+                return [
+                    'nama_barang' => $d->barang->nama_barang ?? '-',
+                    'kategori_barang' => $d->barang->kategori_barang ?? '-',
+                    'harga' => $d->barang->harga ?? 0,
+                    'jumlah' => $d->jumlah,
+                ];
+            });
+
+            return [
+                'id_transaksi' => $trx->id_transaksi,
+                'status_transaksi' => $trx->status_transaksi,
+                'jenis_pengiriman' => $trx->jenis_pengiriman,
+                'biaya_pengiriman' => $trx->biaya_pengiriman,
+                'tanggal_pengambilan' => $trx->tanggal_pengambilan,
+                'total_pembayaran' => $trx->total_pembayaran,
+                'nomor_nota' => $trx->nomor_nota,
+                'bukti_pembayaran' => $trx->bukti_pembayaran,
+                'tanggal_pelunasan' => $trx->tanggal_pelunasan,
+                'created_at' => $trx->created_at,
+                'poin_reward' => $trx->poin_reward,
+                'poin_digunakan' => $trx->poin_digunakan,
+                'detail' => $detail,
+            ];
+        });
+
+        return response()->json([
+            'message' => 'Riwayat penjualan berhasil diambil.',
+            'data' => $data,
+        ]);
+    }
+
+
 }
