@@ -32,8 +32,8 @@ class PembeliController extends Controller
         // Simpan file gambar jika ada
         if ($request->hasFile('image_user')) {
             $file = $request->file('image_user');
-            $filename = $file->getClientOriginalName();
-            $file->storeAs('foto_pembeli', $filename, 'public'); // Simpan ke storage/app/public/foto_pembeli
+            $filename = time() . '_image_' . preg_replace('/\s+/', '_', $file->getClientOriginalName());
+            $file->move(public_path('storage/foto_pembeli'), $filename);
         } else {
             $filename = 'default.jpg';
         }

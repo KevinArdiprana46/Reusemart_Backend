@@ -4,62 +4,96 @@ namespace App\Http\Controllers;
 
 use App\Models\Organisasi;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class OrganisasiController extends Controller
 {
-    // tampil semua
     public function index()
     {
-        return Organisasi::all();
+        if (auth()->user()->id_role != 6) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return response()->json(Organisasi::all(), 200);
     }
 
-    // create organisasi
     public function store(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'nama_organisasi' => 'required|string|max:255',
-            'no_telepon' => 'required|string|max:20',
-            'alamat' => 'required|string',
             'nama_penerima' => 'required|string|max:255',
+            'no_telepon' => 'required|string|max:20',
+            'alamat' => 'required|string|max:500',
+            'email' => 'required|email|unique:organisasi,email',
+            'password' => 'required|string|min:6',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
         $organisasi = Organisasi::create([
             'nama_organisasi' => $request->nama_organisasi,
+            'nama_penerima' => $request->nama_penerima,
             'no_telepon' => $request->no_telepon,
             'alamat' => $request->alamat,
-            'nama_penerima' => $request->nama_penerima,
-            'id_role' => 4,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'id_role' => 4, // role default organisasi
         ]);
 
         return response()->json([
-            'message' => 'Organisasi berhasil ditambahkan',
+            'message' => 'Organisasi berhasil didaftarkan',
             'data' => $organisasi
         ], 201);
     }
 
-    // show by id
     public function show($id)
     {
-        $organisasi = Organisasi::findOrFail($id);
+        if (auth()->user()->id_role != 6) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $organisasi = Organisasi::find($id);
+        if (!$organisasi) {
+            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        }
 
         return response()->json($organisasi);
     }
 
-    // update organisasi
     public function update(Request $request, $id)
     {
-        $organisasi = Organisasi::findOrFail($id);
+        if (auth()->user()->id_role != 6) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
-        $request->validate([
+        $organisasi = Organisasi::find($id);
+        if (!$organisasi) {
+            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
             'nama_organisasi' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email',
-            'no_telepon' => 'sometimes|required|string|max:20',
-            'alamat' => 'sometimes|required|string',
             'nama_penerima' => 'sometimes|required|string|max:255',
+            'no_telepon' => 'sometimes|required|string|max:20',
+            'alamat' => 'sometimes|required|string|max:500',
+            'email' => 'sometimes|required|email|unique:organisasi,email,' . $id,
+            'password' => 'nullable|string|min:6',
         ]);
 
-        $organisasi->update($request->all());
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $data = $request->only(['nama_organisasi', 'nama_penerima', 'no_telepon', 'alamat', 'email']);
+
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $organisasi->update($data);
 
         return response()->json([
             'message' => 'Organisasi berhasil diperbarui',
@@ -67,13 +101,18 @@ class OrganisasiController extends Controller
         ]);
     }
 
-
-    // Hapus organisasi
     public function destroy($id)
     {
-        $organisasi = Organisasi::findOrFail($id);
-        $organisasi->delete();
+        if (auth()->user()->id_role != 6) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
+        $organisasi = Organisasi::find($id);
+        if (!$organisasi) {
+            return response()->json(['message' => 'Data tidak ditemukan'], 404);
+        }
+
+        $organisasi->delete();
         return response()->json(['message' => 'Organisasi berhasil dihapus']);
     }
 }

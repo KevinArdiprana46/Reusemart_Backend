@@ -15,14 +15,15 @@ class Organisasi extends Authenticatable
     protected $primaryKey = 'id_organisasi';
     public $incrementing = true;
     protected $keyType = 'int';
-    public $timestamps = true; 
+    public $timestamps = true;
 
     protected $fillable = [
         'nama_organisasi',
-        'email',
+        'nama_penerima',
         'no_telepon',
         'alamat',
-        'nama_penerima',
+        'email',
+        'password',
         'id_role',
     ];
 

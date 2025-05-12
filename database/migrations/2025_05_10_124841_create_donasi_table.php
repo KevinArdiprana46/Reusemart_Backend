@@ -12,8 +12,8 @@ class CreateDonasiTable extends Migration
             $table->integer('id_donasi')->primary();
             $table->string('nama_barang', 255);
             $table->string('pesan_request', 255)->nullable();
-            $table->string('status_donasi', 255)->nullable();
-            $table->date('tanggal_donasi')->nullable();
+            $table->string('status_donasi', 255);
+            $table->date('tanggal_donasi');
             $table->unsignedBigInteger('id_barang');
             $table->unsignedBigInteger('id_organisasi');
 

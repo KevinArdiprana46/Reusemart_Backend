@@ -78,8 +78,17 @@ class BarangController extends Controller
     {
         $query = $request->query('q');
         $result = Barang::where('nama_barang', 'like', "$query%")
-                        ->get();
+            ->get();
 
         return response()->json($result);
+    }
+
+    public function getBarangDonasi()
+    {
+        $barang = Barang::where('status_barang', 'donasi')
+            ->where('stock', '>', 0)
+            ->get();
+
+        return response()->json($barang);
     }
 }
