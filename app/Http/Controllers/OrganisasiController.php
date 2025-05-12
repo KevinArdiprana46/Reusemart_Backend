@@ -79,7 +79,7 @@ class OrganisasiController extends Controller
             'nama_penerima' => 'sometimes|required|string|max:255',
             'no_telepon' => 'sometimes|required|string|max:20',
             'alamat' => 'sometimes|required|string|max:500',
-            'email' => 'sometimes|required|email|unique:organisasi,email,' . $id,
+            'email' => "sometimes|required|email|unique:organisasi,email,{$id},id_organisasi",
             'password' => 'nullable|string|min:6',
         ]);
 
