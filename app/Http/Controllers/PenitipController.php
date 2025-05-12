@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Penitip;
+use App\Models\Barang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use App\Models\Penitip;
+
 
 class PenitipController extends Controller
 {
@@ -181,5 +183,20 @@ class PenitipController extends Controller
             'message' => 'Hasil pencarian penitip',
             'data' => $results
         ]);
+    }
+
+    public function showbarang(Request $request)
+    {
+        $penitip = auth()->user();
+
+        if (!$penitip || !$penitip->id_penitip) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $barang = Barang::with('foto_barang')
+            ->where('id_penitip', $penitip->id_penitip)
+            ->get();
+
+        return response()->json($barang);
     }
 }

@@ -9,8 +9,8 @@ class BarangController extends Controller
 {
     public function index()
     {
-        $barangs = Barang::all();
-        return response()->json($barangs);
+        $barang = Barang::with('foto_barang')->get();
+        return response()->json($barang);
     }
 
     public function show($id)
@@ -91,4 +91,39 @@ class BarangController extends Controller
 
         return response()->json($barang);
     }
+
+    public function getByKategori($kategori)
+    {
+        $barang = Barang::with('foto_barang')
+            ->whereRaw('LOWER(TRIM(kategori_barang)) = ?', [strtolower(trim($kategori))])
+            ->get();
+
+        if ($barang->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada barang ditemukan',
+                'kategori_yang_dicari' => $kategori
+            ], 404);
+        }
+
+        return response()->json($barang);
+    }
+
+
+    public function getAllBarangForPegawai(Request $request)
+    {
+        $pegawai = $request->user();
+
+        if (!$pegawai || $pegawai->id_pegawai === null) {
+            return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
+        }
+
+        $barang = Barang::all(); // Mengambil semua data barang tanpa relasi foto_barang
+
+        return response()->json([
+            'barang' => $barang,
+            'jabatan' => $pegawai->jabatan,
+        ]);
+    }
+
+
 }

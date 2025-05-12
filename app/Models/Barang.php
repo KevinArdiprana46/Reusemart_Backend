@@ -58,4 +58,9 @@ class Barang extends Model
     {
         return $this->belongsTo(DetailTransaksi::class, 'id_barang');
     }
+
+    public function foto_barang()
+    {
+        return $this->hasMany(FotoBarang::class, 'id_barang');
+    }
 }

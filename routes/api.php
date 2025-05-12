@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AlamatController;
+use App\Http\Controllers\BarangController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\DonasiController;
 use App\Http\Controllers\ResetPasswordController;
@@ -10,7 +11,6 @@ use App\Http\Controllers\PembeliController;
 use App\Http\Controllers\PenitipController;
 use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\PegawaiController;
-use App\Http\Controllers\BarangController;
 use App\Http\Controllers\UserController;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
@@ -41,6 +41,7 @@ Route::prefix('pembeli')->middleware(['auth:sanctum'])->group(function () {
     // Tambahkan route lain khusus pembeli di sini
 });
 
+//ROUTE ALAMAT
 Route::prefix('alamat')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [AlamatController::class, 'index']);
     Route::post('/store', [AlamatController::class, 'store']);
