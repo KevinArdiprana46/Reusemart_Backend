@@ -33,7 +33,7 @@ class PegawaiController extends Controller
             'gender'         => 'required|in:Laki-laki,Perempuan',
             'tanggal_lahir'  => 'required|date',
             'password'       => 'required|string|min:6',
-            'komisi_hunter'  => 'required|numeric|min:0',
+            'komisi_hunter'  => 'nullable|numeric|min:0',
             'image_user'     => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
@@ -55,7 +55,7 @@ class PegawaiController extends Controller
             'gender'         => $request->gender,
             'tanggal_lahir'  => $request->tanggal_lahir,
             'password'       => Hash::make($request->password),
-            'komisi_hunter'  => $request->komisi_hunter,
+            'komisi_hunter'  => 0,
             'image_user'     => $imagePath ?? 'default.jpg',
         ]);
 
@@ -79,7 +79,7 @@ class PegawaiController extends Controller
             'gender'         => 'sometimes|required|in:Laki-laki,Perempuan',
             'tanggal_lahir'  => 'sometimes|required|date',
             'password'       => 'nullable|string|min:6',
-            'komisi_hunter'  => 'sometimes|required|numeric|min:0',
+            'komisi_hunter'  => 'nullable|numeric|min:0',
             'image_user'     => 'sometimes|nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
@@ -123,5 +123,14 @@ class PegawaiController extends Controller
         $pegawai->delete();
 
         return response()->json(['message' => 'Pegawai berhasil dihapus']);
+    }
+
+    public function getDaftarPegawai()
+    {
+        $pegawai = Pegawai::with(['jabatan', 'role'])
+            ->where('id_role', 1)
+            ->get();
+
+        return response()->json($pegawai);
     }
 }
