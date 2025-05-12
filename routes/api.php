@@ -116,6 +116,11 @@ Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/{id}', [PegawaiController::class, 'show']);
     Route::put('/update/{id}', [PegawaiController::class, 'update']);
     Route::delete('/delete/{id}', [PegawaiController::class, 'destroy']);
+    
+//ROUTE PENITIPAN
+
+Route::middleware('auth:sanctum')->prefix('penitipan')->group(function () {
+    Route::get('/barang', [PenitipanController::class, 'showBarangPenitip']);
 });
 
 // Admin: Reset Password Pegawai
