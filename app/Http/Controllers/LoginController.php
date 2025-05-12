@@ -46,12 +46,13 @@ class LoginController extends Controller
             if ($user->password !== $password) {
                 return response()->json(['message' => 'Password salah.'], 401);
             }
-        } else {
-            //gunakan Hash::check untuk user biasa
-            if (!Hash::check($password, $user->password)) {
-                return response()->json(['message' => 'Password salah.'], 401);
-            }
-        }
+        } 
+        // else {
+        //     //gunakan Hash::check untuk user biasa
+        //     if (!Hash::check($password, $user->password)) {
+        //         return response()->json(['message' => 'Password salah.'], 401);
+        //     }
+        // }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
