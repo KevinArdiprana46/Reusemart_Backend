@@ -54,7 +54,8 @@ class Penitip extends Model
         return $this->belongsTo(Alamat::class, 'id_alamat');
     }
 
-    public function barang(){
-        return $this->hasMany(Barang::class, 'id_penitip');
+    public function barang()
+    {
+        return $this->hasMany(Barang::class, 'id_penitip', 'id_penitip');
     }
 }
