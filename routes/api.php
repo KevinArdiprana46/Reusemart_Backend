@@ -39,6 +39,7 @@ Route::prefix('pembeli')->middleware(['auth:sanctum'])->group(function () {
     // Tambahkan route lain khusus pembeli di sini
 });
 
+//ROUTE ALAMAT
 Route::prefix('alamat')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [AlamatController::class, 'index']);             
     Route::post('/store', [AlamatController::class, 'store']);           
@@ -84,18 +85,6 @@ Route::prefix('alamat')->middleware('auth:sanctum')->group(function () {
     Route::delete('/destroy/{id}', [AlamatController::class, 'destroy']);    
 });
 
-
-//ROUTE PEGAWAI CS
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::get('/penitip', [PenitipController::class, 'index']);
-    Route::post('/penitip', [PenitipController::class, 'store']);
-    Route::get('/penitip/{id}', [PenitipController::class, 'show']);
-    Route::put('/penitip/{id}', [PenitipController::class, 'update']);
-    Route::delete('/penitip/{id}', [PenitipController::class, 'destroy']);
-    Route::get('/search/penitip', [PenitipController::class, 'search']);
-});
-
-
 //ROUTE CRUDS ORGANISASI
 Route::prefix('organisasi')->group(function () {
     Route::post('/register', [OrganisasiController::class, 'store']); 
@@ -115,8 +104,6 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/{id}', [BarangController::class, 'show']);
     Route::get('/', [BarangController::class, 'index']);
 });
-
-
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-pembelian', [TransaksiController::class, 'riwayatPembelian']);
