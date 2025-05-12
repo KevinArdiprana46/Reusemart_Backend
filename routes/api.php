@@ -15,7 +15,8 @@ use App\Http\Controllers\{
     PenitipanController,
     ResetPasswordController,
     TransaksiController,
-    UserController
+    UserController,
+    DiskusiController
 };
 
 // 🔐 AUTH / REGISTER / LOGIN
@@ -73,6 +74,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 //ROUTE CRUDS ORGANISASI
+// 🏢 ORGANISASI
 Route::prefix('organisasi')->group(function () {
     Route::post('/register', [OrganisasiController::class, 'store']);
 });
@@ -106,7 +108,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-penjualan', [TransaksiController::class, 'riwayatPenjualan']);
 });
 
-// 👷‍♂ PEGAWAI
+// 👷‍♂️ PEGAWAI
 Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PegawaiController::class, 'index']);
     Route::get('/daftar', [PegawaiController::class, 'getDaftarPegawai']);
@@ -116,7 +118,7 @@ Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::delete('/delete/{id}', [PegawaiController::class, 'destroy']);
 });
 
-// 🛠 RESET PASSWORD PEGAWAI
+// 🛠️ RESET PASSWORD PEGAWAI
 Route::middleware('auth:sanctum')->post('/admin/reset-password/pegawai', [AdminController::class, 'resetPasswordPegawai']);
 
 // 📦 PENITIPAN (fitur tambahan penitip)
