@@ -121,7 +121,7 @@ class BarangController extends Controller
 
         return response()->json([
             'barang' => $barang,
-            'jabatan' => $pegawai->jabatan,
+            'id_jabatan' => $pegawai->id_jabatan,
         ]);
     }
 
