@@ -18,10 +18,12 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    protected $table = 'user';
     protected $fillable = [
         'name',
         'email',
         'password',
+        'id_role',
     ];
 
     /**
@@ -45,5 +47,14 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'id_role');
+    }
+    public function pembeli()
+    {
+        return $this->belongsTo(Pembeli::class, 'email');
     }
 }

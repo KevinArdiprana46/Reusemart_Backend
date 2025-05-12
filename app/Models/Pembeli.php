@@ -35,4 +35,9 @@ class Pembeli extends Authenticatable
         'password',
         'remember_token',
     ];
+
+    public function Role()
+    {
+        return $this->belongsTo(Role::class, 'id_role');
+    }
 }

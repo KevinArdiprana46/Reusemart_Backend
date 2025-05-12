@@ -53,6 +53,7 @@ class OrganisasiController extends Controller
 
         $request->validate([
             'nama_organisasi' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|email',
             'no_telepon' => 'sometimes|required|string|max:20',
             'alamat' => 'sometimes|required|string',
             'nama_penerima' => 'sometimes|required|string|max:255',
