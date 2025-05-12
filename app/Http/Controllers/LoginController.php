@@ -18,7 +18,7 @@ class LoginController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
@@ -38,12 +38,22 @@ class LoginController extends Controller
             return response()->json(['message' => 'Email tidak ditemukan.'], 404);
         }
 
-        // Cek password
-        if (!Hash::check($password, $user->password)) {
-            return response()->json(['message' => 'Password salah.'], 401);
+        // Cek password: role 5 dan 6 bisa pakai password biasa
+        if (
+            $role === 'pegawai' &&
+            in_array($user->id_role, [5, 6])
+        ) {
+            // cek langsung plaintext (untuk admin/owner dummy)
+            if ($user->password !== $password) {
+                return response()->json(['message' => 'Password salah.'], 401);
+            }
+        } else {
+            //gunakan Hash::check untuk user biasa
+            if (!Hash::check($password, $user->password)) {
+                return response()->json(['message' => 'Password salah.'], 401);
+            }
         }
 
-        // Buat token untuk autentikasi
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -51,6 +61,6 @@ class LoginController extends Controller
             'role' => $role,
             'token' => $token,
             'user' => $user,
-   ]);
-}
+        ]);
+    }
 }

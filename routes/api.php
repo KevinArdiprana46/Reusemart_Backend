@@ -7,6 +7,7 @@ use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\OrganisasiController;
 use App\Http\Controllers\PembeliController;
 use App\Http\Controllers\PenitipController;
+use App\Http\Controllers\TransaksiController;
 use App\Http\Controllers\UserController;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
@@ -22,10 +23,6 @@ Route::post('/register', action: [PembeliController::class, 'register']);
 Route::post('/password/email', [ResetPasswordController::class, 'sendResetLinkEmail']);
 Route::post('/password/reset', [ResetPasswordController::class, 'reset']);
 
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-
-// })->middleware('auth:sanctum');
 
 Route::post('/register', [PembeliController::class, 'register']);
 Route::post('/login', [LoginController::class, 'login']);
@@ -34,7 +31,6 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::prefix('pembeli')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/profile', [PembeliController::class, 'profile']);
     Route::post('/update', [PembeliController::class, 'update']);
-    // Tambahkan route lain khusus pembeli di sini
 });
 
 Route::prefix('alamat')->middleware('auth:sanctum')->group(function () {
@@ -66,18 +62,25 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/search/donasi', [DonasiController::class, 'search']);
 });
 
-
-
-
 //ROUTE CRUDS ORGANISASI
-Route::get('/organisasi', [OrganisasiController::class, 'index']);
-Route::post('/organisasi/store', [OrganisasiController::class, 'store']);
-Route::get('/organisasi/{id}', [OrganisasiController::class, 'show']);
-Route::put('/organisasi/update/{id}', [OrganisasiController::class, 'update']);
-Route::delete('/organisasi/delete/{id}', [OrganisasiController::class, 'destroy']);
+Route::prefix('organisasi')->group(function () {
+    Route::post('/register', [OrganisasiController::class, 'store']); 
+});
+
+Route::middleware('auth:sanctum')->prefix('organisasi')->group(function () {
+    Route::get('/', [OrganisasiController::class, 'index']);          
+    Route::get('/show/{id}', [OrganisasiController::class, 'show']);      
+    Route::put('/update/{id}', [OrganisasiController::class, 'update']);     
+    Route::delete('/destroy/{id}', [OrganisasiController::class, 'destroy']); 
+});
 
 
 Route::middleware('auth:sanctum')->group(function () {
-
+    Route::get('/riwayat-pembelian', [TransaksiController::class, 'riwayatPembelian']);
 });
+
+
+
+
+
 
