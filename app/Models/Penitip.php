@@ -19,7 +19,6 @@ class Penitip extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'id_alamat',
         'badge',
         'poin_sosial',
         'nama_lengkap',
@@ -36,22 +35,9 @@ class Penitip extends Model
         'no_ktp',
     ];
 
-    protected $appends = ['image_user_url'];
-
-    public function getImageUserUrlAttribute()
-    {
-        return $this->image_user ? asset('storage/' . $this->image_user) : null;
-    }
-
-
     public function role()
     {
         return $this->belongsTo(Role::class, 'id_role');
-    }
-
-    public function alamat()
-    {
-        return $this->belongsTo(Alamat::class, 'id_alamat');
     }
 
     public function barang()
