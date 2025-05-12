@@ -38,10 +38,9 @@ class LoginController extends Controller
             return response()->json(['message' => 'Email tidak ditemukan.'], 404);
         }
 
-        // Cek password: role 5 dan 6 bisa pakai password biasa
         if (
             $role === 'pegawai' &&
-            in_array($user->id_role, [5, 6])
+            in_array($user->id_role, [5, 6, 1])
         ) {
             // cek langsung plaintext (untuk admin/owner dummy)
             if ($user->password !== $password) {
