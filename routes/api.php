@@ -7,6 +7,7 @@ use App\Http\Controllers\ResetPasswordController;
 use App\Http\Controllers\OrganisasiController;
 use App\Http\Controllers\PembeliController;
 use App\Http\Controllers\PenitipController;
+use App\Http\Controllers\PegawaiController;
 use App\Http\Controllers\UserController;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
@@ -76,6 +77,14 @@ Route::get('/organisasi/{id}', [OrganisasiController::class, 'show']);
 Route::put('/organisasi/update/{id}', [OrganisasiController::class, 'update']);
 Route::delete('/organisasi/delete/{id}', [OrganisasiController::class, 'destroy']);
 
+//ROUTE CRUDS PEGAWAI
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/pegawai', [PegawaiController::class, 'index']);
+    Route::post('/pegawai/store', [PegawaiController::class, 'store']);
+    Route::get('/pegawai/{id}', [PegawaiController::class, 'show']);
+    Route::put('/pegawai/update/{id}', [PegawaiController::class, 'update']);
+    Route::delete('/pegawai/delete/{id}', [PegawaiController::class, 'destroy']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
 
