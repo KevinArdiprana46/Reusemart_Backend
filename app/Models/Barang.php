@@ -44,10 +44,7 @@ class Barang extends Model
     //     return $this->belongsTo(Diskusi::class, 'id_barang');
     // }
 
-    // public function foto_barang()
-    // {
-    //     return $this->belongsTo(Foto_barang::class, 'id_barang');
-    // }
+
 
     // public function penitipan()
     // {

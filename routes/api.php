@@ -134,6 +134,12 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/', [BarangController::class, 'index']);
 });
 
+//NonLogin
+Route::get('non/all', [BarangController::class, 'getAllNonBarangForPegawai']);
+Route::get('non/kategori/{kategori}', [BarangController::class, 'getNonByKategori'])->where('kategori', '.*');
+Route::get('non/{id}', [BarangController::class, 'showNon']);
+Route::get('non/', [BarangController::class, 'index']);
+
 // // DISKUSI
 // Route::middleware('auth:sanctum')->group(function () {
 //     Route::get('/diskusi/{id_barang}', [DiskusiController::class, 'getByBarang']);

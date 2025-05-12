@@ -107,6 +107,32 @@ class BarangController extends Controller
 
         return response()->json($barang);
     }
+    public function showNon($id)
+    {
+        $barang = Barang::find($id);
+        if (!$barang) {
+            return response()->json(['message' => 'Barang not found'], 404);
+        }
+        return response()->json($barang);
+    }
+
+    public function getNonByKategori($kategori)
+    {
+        // Mengambil barang berdasarkan kategori tanpa autentikasi
+        $barang = Barang::with('foto_barang')
+            ->whereRaw('LOWER(TRIM(kategori_barang)) = ?', [strtolower(trim($kategori))])
+            ->get();
+
+        if ($barang->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada barang ditemukan',
+                'kategori_yang_dicari' => $kategori
+            ], 404);
+        }
+
+        return response()->json($barang);
+    }
+
 
 
     public function getAllBarangForPegawai(Request $request)
@@ -122,6 +148,15 @@ class BarangController extends Controller
         return response()->json([
             'barang' => $barang,
             'jabatan' => $pegawai->jabatan,
+        ]);
+    }
+    public function getAllNonBarangForPegawai()
+    {
+        $barang = Barang::all(); // Mengambil semua data barang tanpa relasi foto_barang
+
+        return response()->json([
+            'barang' => $barang,
+
         ]);
     }
 
