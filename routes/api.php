@@ -130,11 +130,21 @@ Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/{id}', [PegawaiController::class, 'show']);
     Route::put('/update/{id}', [PegawaiController::class, 'update']);
     Route::delete('/delete/{id}', [PegawaiController::class, 'destroy']);
-    
+});
 //ROUTE PENITIPAN
 
 Route::middleware('auth:sanctum')->prefix('penitipan')->group(function () {
     Route::get('/barang', [PenitipanController::class, 'showBarangPenitip']);
+});
+
+//ROUTE CRUDS PEGAWAI
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/pegawai', [PegawaiController::class, 'index']);
+    Route::get('/pegawai/daftar', [PegawaiController::class, 'getDaftarPegawai']);
+    Route::post('/pegawai/store', [PegawaiController::class, 'store']);
+    Route::get('/pegawai/{id}', [PegawaiController::class, 'show']);
+    Route::post('/pegawai/update/{id}', [PegawaiController::class, 'update']);
+    Route::delete('/pegawai/delete/{id}', [PegawaiController::class, 'destroy']);
 });
 
 // Admin: Reset Password Pegawai
