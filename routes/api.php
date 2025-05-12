@@ -8,6 +8,8 @@ use App\Http\Controllers\OrganisasiController;
 use App\Http\Controllers\PembeliController;
 use App\Http\Controllers\PenitipController;
 use App\Http\Controllers\TransaksiController;
+use App\Http\Controllers\PegawaiController;
+use App\Http\Controllers\BarangController;
 use App\Http\Controllers\UserController;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Http\Request;
@@ -39,11 +41,11 @@ Route::prefix('pembeli')->middleware(['auth:sanctum'])->group(function () {
 });
 
 Route::prefix('alamat')->middleware('auth:sanctum')->group(function () {
-    Route::get('/', [AlamatController::class, 'index']);             
-    Route::post('/store', [AlamatController::class, 'store']);           
-    Route::get('/show/user', [AlamatController::class, 'show']);          
-    Route::put('/update/{id}', [AlamatController::class, 'update']);        
-    Route::delete('/destroy/{id}', [AlamatController::class, 'destroy']);    
+    Route::get('/', [AlamatController::class, 'index']);
+    Route::post('/store', [AlamatController::class, 'store']);
+    Route::get('/show/user', [AlamatController::class, 'show']);
+    Route::put('/update/{id}', [AlamatController::class, 'update']);
+    Route::delete('/destroy/{id}', [AlamatController::class, 'destroy']);
 });
 
 
@@ -101,10 +103,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/donasi', [DonasiController::class, 'index']);
     Route::post('/donasi', [DonasiController::class, 'store']);
+    Route::get('/donasi/diminta', [DonasiController::class, 'getDonasiDiminta']);
+    Route::get('/donasi/riwayat', [DonasiController::class, 'getRiwayatDonasi']);
+    Route::get('/donasi/diterima', [DonasiController::class, 'getDonasiDiterima']);
     Route::get('/donasi/{id}', [DonasiController::class, 'show']);
     Route::put('/donasi/{id}', [DonasiController::class, 'update']);
     Route::delete('/donasi/{id}', [DonasiController::class, 'destroy']);
     Route::get('/search/donasi', [DonasiController::class, 'search']);
+    Route::post('/donasi/kirim/{id}', [DonasiController::class, 'kirimDonasi']);
+    Route::get('/barang/donasi', [BarangController::class, 'getBarangDonasi']);
 });
 
 //ROUTE CRUDS ORGANISASI
@@ -123,8 +130,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-pembelian', [TransaksiController::class, 'riwayatPembelian']);
 });
 
+//ROUTE CRUDS PEGAWAI
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/pegawai', [PegawaiController::class, 'index']);
+    Route::post('/pegawai/store', [PegawaiController::class, 'store']);
+    Route::get('/pegawai/{id}', [PegawaiController::class, 'show']);
+    Route::put('/pegawai/update/{id}', [PegawaiController::class, 'update']);
+    Route::delete('/pegawai/delete/{id}', [PegawaiController::class, 'destroy']);
+});
 
-
-
-
-
+Route::middleware('auth:sanctum')->group(function () {});
