@@ -99,7 +99,8 @@ Route::middleware('auth:sanctum')->prefix('organisasi')->group(function () {
 
 //ROUTE BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
-    Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']); // pindahkan ke atas
+    Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
+    Route::get('/penitip', [PenitipController::class, 'showbarang']);
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
     Route::get('/{id}', [BarangController::class, 'show']);
     Route::get('/', [BarangController::class, 'index']);
