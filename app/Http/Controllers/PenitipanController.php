@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Penitipan;
+use Carbon\Carbon;
 use App\Models\Barang;
 
 use Illuminate\Support\Facades\Auth;
@@ -90,6 +91,36 @@ class PenitipanController extends Controller
         }
 
         return response()->json($penitipanList);
+    }
+
+    public function perpanjangPenitipan($id)
+    {
+        $penitip = Auth::user();
+
+        if (!$penitip || !$penitip->id_penitip) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $penitipan = Penitipan::where('id_penitipan', $id)
+            ->where('id_penitip', $penitip->id_penitip)
+            ->first();
+
+        if (!$penitipan) {
+            return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
+        }
+        if (strtolower($penitipan->status_perpanjangan) !== 'diperpanjang') {
+            return response()->json([
+                'message' => 'Penitipan tidak dapat diperpanjang karena status bukan "diperpanjang".',
+                'status_perpanjangan' => $penitipan->status_perpanjangan
+            ], 400);
+        }
+        $penitipan->tanggal_akhir = Carbon::parse($penitipan->tanggal_akhir)->addDays(30);
+        $penitipan->batas_pengambilan = Carbon::parse($penitipan->batas_pengambilan)->addDays(30);
+        $penitipan->save();
+        return response()->json([
+            'message' => 'Perpanjangan berhasil, masa penitipan ditambah 30 hari.',
+            'penitipan' => $penitipan
+        ]);
     }
 
 }

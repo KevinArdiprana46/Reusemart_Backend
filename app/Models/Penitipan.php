@@ -32,8 +32,8 @@ class Penitipan extends Model
         return $this->belongsTo(Barang::class, 'id_barang');
     }
 
-    // public function foto_barang(){
-    //     return $this->hasMany(foto_barang::class, 'id_foto');
-    // }
+    public function foto_barang(){
+        return $this->hasMany(foto_barang::class, 'id_foto');
+    }
     
 }
