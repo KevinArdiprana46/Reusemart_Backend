@@ -98,8 +98,8 @@ Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PegawaiController::class, 'index']);
     Route::get('/daftar', [PegawaiController::class, 'getDaftarPegawai']);
     Route::post('/store', [PegawaiController::class, 'store']);
+    Route::post('/update/{id}', [PegawaiController::class, 'update']);
     Route::get('/{id}', [PegawaiController::class, 'show']);
-    Route::put('/update/{id}', [PegawaiController::class, 'update']);
     Route::delete('/delete/{id}', [PegawaiController::class, 'destroy']);
 });
 Route::middleware('auth:sanctum')->post('/admin/reset-password/pegawai', [AdminController::class, 'resetPasswordPegawai']);
@@ -107,13 +107,17 @@ Route::middleware('auth:sanctum')->post('/admin/reset-password/pegawai', [AdminC
 // 📦 PENITIPAN
 Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::get('/barang', [PenitipanController::class, 'showBarangPenitip']);
+
+
     Route::get('/barang/kategori/{kategori}', [PenitipanController::class, 'getBarangByKategori'])->where('kategori', '.*');
     Route::get('/show/{id}', [PenitipanController::class, 'show']);
 });
 
 // 📦 BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
+    Route::post('/{id}/upload-foto', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
+    Route::get('/terjual', [BarangController::class, 'getBarangTerjual']);
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
     Route::get('/{id}', [BarangController::class, 'show']);
     Route::get('/', [BarangController::class, 'index']);

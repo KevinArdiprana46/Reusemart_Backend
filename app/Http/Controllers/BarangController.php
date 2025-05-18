@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Barang;
+use App\Models\FotoBarang;
 
 class BarangController extends Controller
 {
@@ -160,5 +161,32 @@ class BarangController extends Controller
         ]);
     }
 
+    public function getBarangTerjual()
+    {
+        $barang = Barang::where('status_barang', 'terjual')
+            ->get();
 
+        return response()->json($barang);
+    }
+
+    public function uploadFotoBarang(Request $request, $id)
+    {
+
+        $imagePath = $request->hasFile('foto')
+            ? $request->file('foto')->store('storage/foto_barang', 'public')
+            : null;
+
+        // $request->hasFile('image_user')
+        //     ? $request->file('image_user')->store('storage/foto_barang', 'public')
+        //     : null;
+        $foto_barang = FotoBarang::create([
+            'id_barang' => $id,
+            'foto_barang' => $imagePath,
+        ]);
+
+        return response()->json([
+            'message' => 'Foto berhasil ditambahkan',
+            'image_url' => $imagePath ? asset('storage/' . $imagePath) : null,
+        ], 201);
+    }
 }
