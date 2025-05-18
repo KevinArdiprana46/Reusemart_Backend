@@ -185,18 +185,32 @@ class PenitipController extends Controller
         ]);
     }
 
-    public function showbarang(Request $request)
-    {
+    // public function showbarang(Request $request)
+    // {
+    //     $penitip = auth()->user();
+
+    //     if (!$penitip || !$penitip->id_penitip) {
+    //         return response()->json(['message' => 'Unauthorized'], 403);
+    //     }
+
+    //     $barang = Barang::with('foto_barang')
+    //         ->where('id_penitip', $penitip->id_penitip)
+    //         ->get();
+
+    //     return response()->json($barang);
+    // }
+
+    public function barangPenitip(){
         $penitip = auth()->user();
 
-        if (!$penitip || !$penitip->id_penitip) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+    if (!$penitip || !$penitip instanceof Penitip) {
+        return response()->json(['message' => 'Unauthorized'], 401);
+    }
 
-        $barang = Barang::with('foto_barang')
-            ->where('id_penitip', $penitip->id_penitip)
-            ->get();
+    $barang = Barang::with('foto_barang')
+        ->where('id_penitip', $penitip->id_penitip)
+        ->get();
 
-        return response()->json($barang);
+    return response()->json($barang);
     }
 }

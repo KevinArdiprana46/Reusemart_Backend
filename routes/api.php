@@ -108,6 +108,7 @@ Route::middleware('auth:sanctum')->prefix('penitipan')->group(function () {
     Route::get('/barang', [PenitipanController::class, 'showBarangPenitip']);
     Route::get('/barang/kategori/{kategori}', [PenitipanController::class, 'getBarangByKategori'])->where('kategori', '.*');
     Route::get('/show/{id}', [PenitipanController::class, 'show']);
+    Route::get('/search', [PenitipanController::class, 'searchBarangByNama']);
 });
 
 //ROUTE BARANG

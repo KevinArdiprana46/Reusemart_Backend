@@ -49,17 +49,48 @@ class PenitipanController extends Controller
     }
 
     public function show($id)
-{
-    $penitipan = Penitipan::with(['barang.foto_barang'])->find($id);
+    {
+        $penitipan = Penitipan::with(['barang.foto_barang'])->find($id);
 
-    if (!$penitipan) {
-        return response()->json(['message' => 'Penitipan not found'], 404);
+        if (!$penitipan) {
+            return response()->json(['message' => 'Penitipan not found'], 404);
+        }
+
+        return response()->json([
+            'penitipan' => $penitipan
+        ]);
     }
 
-    return response()->json([
-        'penitipan' => $penitipan
-    ]);
-}
+    public function searchBarangByNama(Request $request)
+    {
+        $penitip = Auth::user();
+
+        if (!$penitip || !$penitip->id_penitip) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $keyword = $request->query('q');
+
+        if (!$keyword) {
+            return response()->json(['message' => 'Parameter pencarian (q) wajib diisi.'], 400);
+        }
+
+        $penitipanList = Penitipan::with(['barang.foto_barang'])
+            ->where('id_penitip', $penitip->id_penitip)
+            ->whereHas('barang', function ($query) use ($keyword) {
+                $query->where('nama_barang', 'LIKE', '%' . $keyword . '%');
+            })
+            ->get();
+
+        if ($penitipanList->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada barang ditemukan dengan nama tersebut.',
+                'kata_kunci' => $keyword
+            ], 404);
+        }
+
+        return response()->json($penitipanList);
+    }
 
 }
 
