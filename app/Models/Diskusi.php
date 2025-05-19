@@ -8,13 +8,16 @@ class Diskusi extends Model
 {
     protected $table = 'diskusi';
     protected $primaryKey = 'id_diskusi';
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'id_barang',
         'id_pembeli',
         'id_pegawai',
         'pesan_diskusi',
+        'is_read',
+        'created_at',
+        'updated_at',
     ];
 
     public function pembeli()

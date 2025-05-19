@@ -143,13 +143,20 @@ class BarangController extends Controller
             return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
         }
 
-        $barang = Barang::all(); // Mengambil semua data barang tanpa relasi foto_barang
+        $barang = Barang::withCount([
+            'diskusi as jumlah_chat_baru' => function ($q) {
+                $q->where('is_read', false);
+            }
+        ])
+            ->whereHas('diskusi') // hanya barang yang punya diskusi
+            ->get();
 
         return response()->json([
             'barang' => $barang,
             'id_jabatan' => $pegawai->id_jabatan,
         ]);
     }
+
     public function getAllNonBarangForPegawai()
     {
         $barang = Barang::all(); // Mengambil semua data barang tanpa relasi foto_barang

@@ -36,6 +36,7 @@ Route::prefix('pembeli')->middleware('auth:sanctum')->group(function () {
 // 🏠 ALAMAT
 Route::prefix('alamat')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [AlamatController::class, 'index']);
+    Route::post('/set-utama/{id}', [AlamatController::class, 'setUtama']);
     Route::post('/store', [AlamatController::class, 'store']);
     Route::get('/show/user', [AlamatController::class, 'show']);
     Route::put('/update/{id}', [AlamatController::class, 'update']);
@@ -129,4 +130,5 @@ Route::get('non/', [BarangController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/diskusi/{id_barang}', [DiskusiController::class, 'getByBarang']);
     Route::post('/diskusi/kirim', [DiskusiController::class, 'kirimPesan']);
+    Route::post('/diskusi/baca/{id_barang}', [DiskusiController::class, 'tandaiDiskusiSudahDibaca']);
 });

@@ -14,7 +14,7 @@ class Alamat extends Model
     public $incrementing = true;
     protected $keyType = 'int';
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'provinsi',
@@ -23,6 +23,9 @@ class Alamat extends Model
         'detail_alamat',
         'kode_pos',
         'id_pembeli',
+        'created_at',
+        'updated_at',
+        'utama',
     ];
 
     public function pembeli()

@@ -11,11 +11,14 @@ class OrganisasiController extends Controller
 {
     public function index()
     {
+
         if (auth()->user()->id_role != 6) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        return response()->json(Organisasi::all(), 200);
+            return response()->json(Organisasi::all(), 200);
+        
+        
     }
 
     public function store(Request $request)
@@ -115,4 +118,7 @@ class OrganisasiController extends Controller
         $organisasi->delete();
         return response()->json(['message' => 'Organisasi berhasil dihapus']);
     }
+
+    
+    
 }

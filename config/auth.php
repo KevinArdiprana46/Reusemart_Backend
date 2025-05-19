@@ -117,12 +117,12 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
-        // 'penitips' => [
-        //     'provider' => 'penitips',
-        //     'table' => 'password_resets',
-        //     'expire' => 60,
-        //     'throttle' => 60,
-        // ],
+        'penitips' => [
+            'provider' => 'penitips',
+            'table' => 'password_resets',
+            'expire' => 60,
+            'throttle' => 60,
+        ],
     ],
 
 
