@@ -49,10 +49,10 @@ class Barang extends Model
     //     return $this->belongsTo(Foto_barang::class, 'id_barang');
     // }
 
-    // public function penitipan()
-    // {
-    //     return $this->belongsTo(Penitipan::class, 'id_barang');
-    // }
+    public function penitipan()
+    {
+        return $this->hasOne(Penitipan::class, 'id_barang');
+    }
 
     public function detailTransaksi()
     {

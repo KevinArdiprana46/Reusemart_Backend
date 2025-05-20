@@ -59,10 +59,8 @@ class PenitipanController extends Controller
 
         $barang = $penitipan->barang;
 
-        // Ambil id_penitip dari barang
         $idPenitip = $barang->id_penitip ?? null;
 
-        // Cari transaksi terbaru untuk penitip ini
         $transaksiTerakhir = \App\Models\Transaksi::where('id_penitip', $idPenitip)
             ->orderByDesc('created_at')
             ->first();
