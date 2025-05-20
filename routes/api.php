@@ -89,6 +89,9 @@ Route::middleware('auth:sanctum')->get('/barang/donasi', [BarangController::clas
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-pembelian', [TransaksiController::class, 'riwayatPembelian']);
     Route::get('/riwayat-penjualan', [TransaksiController::class, 'riwayatPenjualan']);
+    Route::post('/transaksi/konfirmasi-ambil/{id_penitipan}', [TransaksiController::class, 'konfirmasiAmbil']);
+    Route::get('/gudang/transaksi', [TransaksiController::class, 'transaksiGudang']);
+
 });
 
 // 👷‍♂ PEGAWAI
@@ -110,6 +113,8 @@ Route::middleware('auth:sanctum')->prefix('penitipan')->group(function () {
     Route::get('/show/{id}', [PenitipanController::class, 'show']);
     Route::get('/search', [PenitipanController::class, 'searchBarangByNama']);
     Route::post('/perpanjang/{id}', [PenitipanController::class, 'perpanjangPenitipan']);
+    Route::post('/gudang/penitipan/ambil/{id}', [PenitipanController::class, 'konfirmasiPengambilan']);
+
 });
 
 //ROUTE BARANG

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\DetailTransaksi;
 use App\Models\Transaksi;
+use App\Models\Penitipan;
+use App\Models\Barang;
 use Auth;
 use Illuminate\Http\Request;
 
@@ -120,4 +122,55 @@ class TransaksiController extends Controller
     }
 
 
+    public function konfirmasiAmbil($id_penitipan)
+    {
+        // Cari penitipan
+        $penitipan = Penitipan::find($id_penitipan);
+
+        if (!$penitipan) {
+            return response()->json(['message' => 'Penitipan tidak ditemukan.'], 404);
+        }
+
+        // Ambil barang terkait
+        $barang = Barang::find($penitipan->id_barang);
+
+        if (!$barang) {
+            return response()->json(['message' => 'Barang tidak ditemukan.'], 404);
+        }
+
+        // Ubah status barang menjadi 'terjual'
+        $barang->status_barang = 'terjual';
+        $barang->save();
+
+        // Ambil transaksi terakhir dari penitip ini
+        $transaksi = Transaksi::where('id_penitip', $barang->id_penitip)
+            ->orderByDesc('created_at')
+            ->first();
+
+        if ($transaksi) {
+            $transaksi->status_transaksi = 'selesai';
+            $transaksi->save();
+        }
+
+        return response()->json(['message' => 'Konfirmasi pengambilan berhasil.']);
+    }
+
+    public function transaksiGudang(Request $request)
+    {
+        $pegawai = auth()->user();
+
+        if (!$pegawai || $pegawai->id_jabatan !== 7) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $transaksi = Transaksi::with(['pembeli', 'penitip.barang'])
+            ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($transaksi);
+    }
+
 }
+
+

@@ -57,10 +57,23 @@ class PenitipanController extends Controller
             return response()->json(['message' => 'Penitipan not found'], 404);
         }
 
+        $barang = $penitipan->barang;
+
+        // Ambil id_penitip dari barang
+        $idPenitip = $barang->id_penitip ?? null;
+
+        // Cari transaksi terbaru untuk penitip ini
+        $transaksiTerakhir = \App\Models\Transaksi::where('id_penitip', $idPenitip)
+            ->orderByDesc('created_at')
+            ->first();
+
         return response()->json([
-            'penitipan' => $penitipan
+            'penitipan' => $penitipan,
+            'status_transaksi' => $transaksiTerakhir->status_transaksi ?? null,
+            'status_barang' => $barang->status_barang ?? null,
         ]);
     }
+
 
     public function searchBarangByNama(Request $request)
     {
@@ -120,6 +133,29 @@ class PenitipanController extends Controller
         return response()->json([
             'message' => 'Perpanjangan berhasil, masa penitipan ditambah 30 hari.',
             'penitipan' => $penitipan
+        ]);
+    }
+
+    public function konfirmasiPengambilan($id)
+    {
+        $pegawai = auth()->user();
+
+        if (!$pegawai || $pegawai->id_jabatan !== 7) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $penitipan = Penitipan::find($id);
+
+        if (!$penitipan) {
+            return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
+        }
+        $penitipan->status_perpanjangan = 'diambil';
+        $penitipan->batas_pengambilan = Carbon::now();
+        $penitipan->save();
+
+        return response()->json([
+            'message' => 'Barang berhasil dicatat sebagai diambil kembali.',
+            'data' => $penitipan,
         ]);
     }
 
