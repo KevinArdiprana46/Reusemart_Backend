@@ -270,7 +270,7 @@ class TransaksiController extends Controller
     {
         $now = Carbon::now();
 
-        $expiredTransaksi = Transaksi::with('penitip.penitipan.barang')
+        $expiredTransaksi = Transaksi::with('penitip.penitipan')
             ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
             ->whereDate('tanggal_pengambilan', '<', $now->copy()->subDays(2)->toDateString())
             ->get();
@@ -278,15 +278,19 @@ class TransaksiController extends Controller
         $jumlah = 0;
 
         foreach ($expiredTransaksi as $transaksi) {
-            $penitipanPertama = $transaksi->penitip->penitipan->first();
-            $barang = $penitipanPertama?->barang ?? null;
-
-            $transaksi->status_transaksi = 'Hangus';
+            $transaksi->status_transaksi = 'hangus';
             $transaksi->save();
 
-            if ($barang) {
-                $barang->status_barang = 'donasi';
-                $barang->save();
+            if ($transaksi->penitip && $transaksi->penitip->penitipan) {
+                foreach ($transaksi->penitip->penitipan as $penitipan) {
+                    if ($penitipan->id_barang) {
+                        $barang = Barang::find($penitipan->id_barang);
+                        if ($barang) {
+                            $barang->status_barang = 'donasi';
+                            $barang->save();
+                        }
+                    }
+                }
             }
 
             \Log::info("🔥 Transaksi #{$transaksi->id_transaksi} hangus. Barang jadi donasi.");
@@ -298,6 +302,47 @@ class TransaksiController extends Controller
             'jumlah_dihanguskan' => $jumlah,
         ]);
     }
+
+    public function hitungKomisiHunter()
+    {
+        $transaksiList = Transaksi::with(['penitip.penitipan.barang', 'pegawai'])
+            ->where('status_transaksi', 'selesai')
+            ->get();
+
+        $totalKomisi = 0;
+
+        foreach ($transaksiList as $transaksi) {
+            // Validasi hanya jika pegawai adalah hunter
+            $pegawai = $transaksi->pegawai;
+            if (!$pegawai || $pegawai->id_jabatan != 5) {
+                continue;
+            }
+
+            // Loop semua barang dari penitipan milik penitip transaksi ini
+            $penitipanList = $transaksi->penitip->penitipan ?? [];
+
+            foreach ($penitipanList as $penitipan) {
+                $barang = $penitipan->barang ?? null;
+
+                if ($barang && strtolower($barang->status_barang) === 'terjual') {
+                    $komisi = 0.05 * $barang->harga_barang;
+                    $pegawai->komisi_hunter += $komisi;
+                    $totalKomisi += $komisi;
+
+                    \Log::info("💸 Komisi Rp{$komisi} untuk Hunter {$pegawai->nama_lengkap} dari barang {$barang->nama_barang}");
+                }
+            }
+
+            // Simpan akumulasi ke hunter tersebut
+            $pegawai->save();
+        }
+
+        return response()->json([
+            'message' => 'Perhitungan komisi hunter selesai.',
+            'total_komisi' => $totalKomisi,
+        ]);
+    }
+
 
 
 

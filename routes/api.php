@@ -95,6 +95,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/gudang/transaksi/jadwalkan-ambil-sendiri/{id_transaksi}', [TransaksiController::class, 'jadwalkanAmbilSendiri']);
     Route::post('/gudang/transaksi/konfirmasi-diterima/{id_transaksi}', [TransaksiController::class, 'konfirmasiBarangDiterima']);
     Route::post('/transaksi/hanguskan-otomatis', [TransaksiController::class, 'cekTransaksiHangus']);
+    Route::get('/komisi/hunter', [TransaksiController::class, 'hitungKomisiHunter']);
+
 
 });
 

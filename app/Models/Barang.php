@@ -22,7 +22,6 @@ class Barang extends Model
         'tanggal_garansi'
     ];
 
-    // Relasi dengan Pegawai (misalnya)
     public function pegawai()
     {
         return $this->belongsTo(Pegawai::class, 'id_pegawai');
