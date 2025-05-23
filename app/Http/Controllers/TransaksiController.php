@@ -8,6 +8,7 @@ use App\Models\Penitipan;
 use App\Models\Barang;
 use App\Models\Pegawai;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Auth;
 use Illuminate\Http\Request;
 
@@ -529,6 +530,63 @@ class TransaksiController extends Controller
             'total_poin_diberikan' => $totalPoinDiberikan
         ]);
     }
+
+    public function ambilPenitipanDariTransaksi($id_transaksi)
+    {
+        $transaksi = Transaksi::find($id_transaksi);
+
+        if (!$transaksi) {
+            return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
+        }
+
+        // Ambil penitipan berdasarkan id_penitip dari transaksi
+        $penitipan = Penitipan::with('barang')
+            ->where('id_penitip', $transaksi->id_penitip)
+            ->first(); // atau get() jika ingin banyak
+
+        if (!$penitipan) {
+            return response()->json(['message' => 'Data penitipan tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'message' => 'Data penitipan ditemukan',
+            'penitipan' => $penitipan
+        ]);
+    }
+
+    public function generateNotaPDF($id_transaksi)
+    {
+        $transaksi = Transaksi::with([
+            'pembeli.alamat',
+            'detailtransaksi.barang.penitipan',
+            'pegawai'
+        ])->findOrFail($id_transaksi);
+
+        $data = $transaksi->toArray(); // konversi agar kompatibel di React PDF
+
+        $pdf = Pdf::loadView('nota.pdf', ['transaksi' => $data]);
+        return $pdf->download("Nota_{$transaksi->nomor_nota}.pdf");
+    }
+
+
+    public function semuaTransaksi()
+    {
+        $user = auth()->user();
+
+        if (!$user || !in_array($user->id_role, [1, 6])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $transaksi = Transaksi::with([
+            'detailtransaksi.barang.penitipan',
+            'pembeli.alamat'
+        ])->orderByDesc('created_at')->get();
+
+
+        return response()->json($transaksi);
+    }
+
+
 
 }
 

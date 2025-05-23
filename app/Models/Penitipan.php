@@ -8,7 +8,7 @@ class Penitipan extends Model
 {
     protected $table = 'penitipan';
     protected $primaryKey = 'id_penitipan';
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'id_penitip',
@@ -18,6 +18,7 @@ class Penitipan extends Model
         'batas_pengambilan',
         'status_perpanjangan',
         'saldo_penitip',
+        'nama_qc',
     ];
 
     // Relasi ke Penitip

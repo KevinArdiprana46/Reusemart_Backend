@@ -62,4 +62,5 @@ class Barang extends Model
     {
         return $this->hasMany(FotoBarang::class, 'id_barang');
     }
+
 }

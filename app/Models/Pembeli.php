@@ -40,4 +40,10 @@ class Pembeli extends Authenticatable
     {
         return $this->belongsTo(Role::class, 'id_role');
     }
+
+    public function alamat()
+    {
+        return $this->hasOne(Alamat::class, 'id_pembeli', 'id_pembeli');
+    }
+
 }

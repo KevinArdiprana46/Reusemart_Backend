@@ -100,7 +100,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/komisi/penitip', [TransaksiController::class, 'hitungKomisiPenitip']);
     Route::get('/komisi/penitip/tambah-saldo', [TransaksiController::class, 'tambahSaldoPenitip']);
     Route::get('/poin/pembeli/tambah', [TransaksiController::class, 'tambahPoinPembeli']);
-
+    Route::get('/nota/{id_transaksi}/pdf', [TransaksiController::class, 'generateNotaPDF']);
+    Route::get('/transaksi/semua', [TransaksiController::class, 'semuaTransaksi']);
 
 });
 
