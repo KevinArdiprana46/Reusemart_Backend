@@ -332,8 +332,6 @@ class TransaksiController extends Controller
                     \Log::info("💸 Komisi Rp{$komisi} untuk Hunter {$pegawai->nama_lengkap} dari barang {$barang->nama_barang}");
                 }
             }
-
-            // Simpan akumulasi ke hunter tersebut
             $pegawai->save();
         }
 
@@ -343,8 +341,194 @@ class TransaksiController extends Controller
         ]);
     }
 
+    public function hitungKomisiReusemart()
+    {
+        $now = Carbon::now();
+        $transaksiList = Transaksi::with(['penitip', 'penitip.penitipan'])
+            ->where('status_transaksi', 'selesai')
+            ->get();
+
+        $jumlahDihitung = 0;
+        $totalKomisi = 0;
+
+        foreach ($transaksiList as $transaksi) {
+            $penitipan = Penitipan::where('id_penitip', $transaksi->id_penitip)
+                ->with('barang')
+                ->get();
+
+            foreach ($penitipan as $p) {
+                $barang = $p->barang;
+
+                if ($barang && strtolower($barang->status_barang) === 'terjual') {
+                    $tanggalMasuk = Carbon::parse($p->tanggal_masuk);
+                    $daysDiff = $tanggalMasuk->diffInDays($now);
+
+                    if (strtolower($p->status_perpanjangan) === 'tidak diperpanjang') {
+                        $komisi = $daysDiff <= 7
+                            ? 0.15 * $barang->harga_barang
+                            : 0.20 * $barang->harga_barang;
+                    } else {
+                        $komisi = 0.25 * $barang->harga_barang;
+                    }
+
+                    $transaksi->komisi_reusemart = $komisi;
+                    $transaksi->save();
+
+                    $totalKomisi += $komisi;
+                    $jumlahDihitung++;
+
+                    \Log::info("💼 Komisi ReuseMart Rp{$komisi} dihitung dari barang ID {$barang->id_barang}");
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => 'Perhitungan komisi ReuseMart selesai.',
+            'jumlah_dihitung' => $jumlahDihitung,
+            'total_komisi_reusemart' => $totalKomisi
+        ]);
+    }
+
+    public function hitungKomisiPenitip()
+    {
+        $transaksiList = Transaksi::with('penitip')->where('status_transaksi', 'selesai')->get();
+        $totalKomisi = 0;
+        $jumlahDiproses = 0;
+
+        foreach ($transaksiList as $transaksi) {
+            $penitip = $transaksi->penitip;
+            if (!$penitip)
+                continue;
+
+            $penitipanList = Penitipan::where('id_penitip', $penitip->id_penitip)->with('barang')->get();
+
+            foreach ($penitipanList as $penitipan) {
+                $barang = $penitipan->barang;
+                if (!$barang || strtolower($barang->status_barang) !== 'terjual')
+                    continue;
+
+                $tanggalMasuk = Carbon::parse($penitipan->tanggal_masuk);
+                $tanggalTerjual = Carbon::parse($transaksi->tanggal_pelunasan);
+                $selisihHari = $tanggalMasuk->diffInDays($tanggalTerjual);
+
+                // Hitung komisi untuk reusemart
+                $komisiReusemart = 0;
+                if (strtolower($penitipan->status_perpanjangan) === 'tidak diperpanjang') {
+                    $komisiReusemart = $selisihHari <= 7 ? 0.15 : 0.20;
+                } else {
+                    $komisiReusemart = 0.25;
+                }
+
+                $nilaiKomisi = $komisiReusemart * $barang->harga_barang;
+
+                // Hitung bonus penitip jika terjual < 7 hari
+                $bonus = $selisihHari < 7 ? 0.1 * $nilaiKomisi : 0;
+
+                $komisiPenitip = $barang->harga_barang - $nilaiKomisi + $bonus;
+
+                // Tambahkan ke penitip
+                $penitip->komisi += $komisiPenitip;
+                $penitip->bonus += $bonus;
+                $penitip->save();
+
+                $totalKomisi += $komisiPenitip;
+                $jumlahDiproses++;
+
+                \Log::info("✅ Komisi penitip Rp{$komisiPenitip} + bonus Rp{$bonus} diberikan ke {$penitip->nama_lengkap} dari barang ID {$barang->id_barang}");
+            }
+        }
+
+        return response()->json([
+            'message' => 'Penghitungan komisi penitip selesai.',
+            'jumlah_diproses' => $jumlahDiproses,
+            'total_komisi_penitip' => $totalKomisi
+        ]);
+    }
 
 
+    public function tambahSaldoPenitip()
+    {
+        $transaksiList = Transaksi::where('status_transaksi', 'selesai')->get();
+        $jumlahPenitipDiproses = 0;
+
+        foreach ($transaksiList as $transaksi) {
+            $penitip = $transaksi->penitip;
+            if (!$penitip)
+                continue;
+
+            $penitipanList = Penitipan::where('id_penitip', $penitip->id_penitip)->get();
+
+            $totalSaldo = 0;
+
+            foreach ($penitipanList as $penitipan) {
+                $barang = Barang::find($penitipan->id_barang);
+
+                if ($barang && strtolower($barang->status_barang) === 'terjual') {
+                    $tanggalMasuk = Carbon::parse($penitipan->tanggal_masuk);
+                    $hari = $tanggalMasuk->diffInDays(Carbon::now());
+
+                    $komisiReusemart = 0;
+                    if (strtolower($penitipan->status_perpanjangan) === 'tidak diperpanjang') {
+                        $komisiReusemart = $hari <= 7 ? 0.15 : 0.20;
+                    } else {
+                        $komisiReusemart = 0.25;
+                    }
+
+                    $komisi = $barang->harga_barang * $komisiReusemart;
+                    $penghasilan = $barang->harga_barang - $komisi;
+
+                    $totalSaldo += $penghasilan;
+                }
+            }
+
+            if ($totalSaldo > 0) {
+                $penitip->saldo += $totalSaldo;
+                $penitip->save();
+                $jumlahPenitipDiproses++;
+            }
+        }
+
+        return response()->json([
+            'message' => 'Penambahan saldo penitip selesai.',
+            'jumlah_penitip_diproses' => $jumlahPenitipDiproses
+        ]);
+    }
+
+    public function tambahPoinPembeli()
+    {
+        $transaksiList = Transaksi::with('pembeli')
+            ->where('status_transaksi', 'selesai')
+            ->get();
+
+        $jumlahDiproses = 0;
+        $totalPoinDiberikan = 0;
+
+        foreach ($transaksiList as $transaksi) {
+            $pembeli = $transaksi->pembeli;
+
+            if (!$pembeli)
+                continue;
+
+            // Hitung poin: 1 poin tiap 10.000
+            $poin_sosial = floor($transaksi->total_pembayaran / 10000);
+
+            if ($poin_sosial > 0) {
+                $pembeli->poin_sosial += $poin_sosial;
+                $pembeli->save();
+
+                $jumlahDiproses++;
+                $totalPoinDiberikan += $poin_sosial;
+
+                \Log::info("🎁 {$poin_sosial} poin ditambahkan ke {$pembeli->nama_lengkap} (ID: {$pembeli->id_pembeli})");
+            }
+        }
+
+        return response()->json([
+            'message' => 'Penambahan poin pembeli selesai.',
+            'jumlah_diproses' => $jumlahDiproses,
+            'total_poin_diberikan' => $totalPoinDiberikan
+        ]);
+    }
 
 }
 

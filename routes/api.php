@@ -96,6 +96,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/gudang/transaksi/konfirmasi-diterima/{id_transaksi}', [TransaksiController::class, 'konfirmasiBarangDiterima']);
     Route::post('/transaksi/hanguskan-otomatis', [TransaksiController::class, 'cekTransaksiHangus']);
     Route::get('/komisi/hunter', [TransaksiController::class, 'hitungKomisiHunter']);
+    Route::get('/komisi/reusemart', [TransaksiController::class, 'hitungKomisiReusemart']);
+    Route::get('/komisi/penitip', [TransaksiController::class, 'hitungKomisiPenitip']);
+    Route::get('/komisi/penitip/tambah-saldo', [TransaksiController::class, 'tambahSaldoPenitip']);
+    Route::get('/poin/pembeli/tambah', [TransaksiController::class, 'tambahPoinPembeli']);
 
 
 });
