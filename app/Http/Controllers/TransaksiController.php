@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DetailTransaksi;
 use App\Models\Transaksi;
+use App\Models\Penitip;
 use Auth;
 use Illuminate\Http\Request;
 
@@ -118,6 +119,5 @@ class TransaksiController extends Controller
             'data' => $data,
         ]);
     }
-
 
 }

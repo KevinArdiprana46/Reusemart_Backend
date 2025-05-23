@@ -68,7 +68,6 @@ Route::prefix('donasi')->middleware('auth:sanctum')->group(function () {
     Route::get('/search', [DonasiController::class, 'search']);
     Route::post('/kirim/{id}', [DonasiController::class, 'kirimDonasi']);
     Route::put('/update-donasi/{id}', [DonasiController::class, 'updateDonasi']);
-
 });
 Route::middleware('auth:sanctum')->get('/barang/donasi', [BarangController::class, 'getBarangDonasi']);
 
@@ -109,6 +108,7 @@ Route::middleware('auth:sanctum')->post('/admin/reset-password/pegawai', [AdminC
 // 📦 PENITIPAN
 Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::get('/barang', [PenitipanController::class, 'showBarangPenitip']);
+    Route::post('/store', [PenitipanController::class, 'storePenitipanBarang']);
 
 
     Route::get('/barang/kategori/{kategori}', [PenitipanController::class, 'getBarangByKategori'])->where('kategori', '.*');
@@ -117,15 +117,21 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
 
 // 📦 BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
-    Route::post('/{id}/upload-foto', [BarangController::class, 'uploadFotoBarang']);
+    Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
     Route::get('/terjual', [BarangController::class, 'getBarangTerjual']);
-    Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
-    Route::get('/{id}', [BarangController::class, 'show']);
+
+
     Route::get('/', [BarangController::class, 'index']);
+    Route::put('/rating/{id}', [BarangController::class, 'beriRatingBarang']);
+    Route::get('/hitung-rating/{id}', [BarangController::class, 'hitungRatingPenitip']);
+    // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
+
 });
 
 //NonLogin
+Route::get('barang/{id}', [BarangController::class, 'show']);
+Route::get('/barang/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
 Route::get('non/all', [BarangController::class, 'getAllNonBarangForPegawai']);
 Route::get('non/kategori/{kategori}', [BarangController::class, 'getNonByKategori'])->where('kategori', '.*');
 Route::get('non/{id}', [BarangController::class, 'showNon']);

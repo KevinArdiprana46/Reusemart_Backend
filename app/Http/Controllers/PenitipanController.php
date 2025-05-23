@@ -1,11 +1,14 @@
 <?php
 
 namespace App\Http\Controllers;
+
 use Illuminate\Http\Request;
 use App\Models\Penitipan;
 use App\Models\Barang;
+use Carbon\Carbon;
 
 use Illuminate\Support\Facades\Auth;
+
 class PenitipanController extends Controller
 {
     public function showBarangPenitip()
@@ -49,21 +52,43 @@ class PenitipanController extends Controller
     }
 
     public function show($id)
-{
-    $penitipan = Penitipan::with(['barang.foto_barang'])->find($id);
+    {
+        $penitipan = Penitipan::with(['barang.foto_barang'])->find($id);
 
-    if (!$penitipan) {
-        return response()->json(['message' => 'Penitipan not found'], 404);
+        if (!$penitipan) {
+            return response()->json(['message' => 'Penitipan not found'], 404);
+        }
+
+        return response()->json([
+            'penitipan' => $penitipan
+        ]);
     }
 
-    return response()->json([
-        'penitipan' => $penitipan
-    ]);
+    public function storePenitipanBarang(Request $request)
+    {
+        $request->validate([
+            'id_penitip' => 'required|exists:penitip,id_penitip',
+            'id_barang' => 'required|exists:barang,id_barang',
+            'nama_qc' => 'required|string|max:255',
+        ]);
+
+        $tanggalMasuk = Carbon::now();
+        $tanggalAkhir = $tanggalMasuk->copy()->addDays(30);
+        $batasPengambilan = $tanggalAkhir->copy()->addDays(7);
+
+        $penitipan = Penitipan::create([
+            'id_penitip' => $request->id_penitip,
+            'id_barang' => $request->id_barang,
+            'nama_qc' => $request->nama_qc,
+            'tanggal_masuk' => $tanggalMasuk->toDateString(),
+            'tanggal_akhir' => $tanggalAkhir->toDateString(),
+            'batas_pengambilan' => $batasPengambilan->toDateString(),
+            'status_perpanjangan' => 'tidak diperpanjang',
+        ]);
+
+        return response()->json([
+            'message' => 'Penitipan barang berhasil ditambahkan.',
+            'data' => $penitipan
+        ]);
+    }
 }
-
-}
-
-
-
-
-

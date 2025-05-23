@@ -21,6 +21,7 @@ class Penitip extends Authenticatable
     protected $fillable = [
         'badge',
         'poin_sosial',
+        'rating_penitip',
         'nama_lengkap',
         'no_telepon',
         'email',

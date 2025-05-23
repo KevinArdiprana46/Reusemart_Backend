@@ -19,6 +19,7 @@ class Barang extends Model
         'harga_barang',
         'status_barang',
         'stock',
+        'rating_barang',
         'tanggal_garansi'
     ];
 
