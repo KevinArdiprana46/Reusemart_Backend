@@ -79,13 +79,11 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Organisasi::class,
         ],
-        // 'penitips' => [
-        //     'driver' => 'eloquent',
-        //     'model' => App\Models\Penitip::class,
-        // ],
+        'penitips' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Penitip::class,
+        ],
     ],
-
-
     /*
     |--------------------------------------------------------------------------
     | Resetting Passwords
