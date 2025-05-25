@@ -17,7 +17,7 @@ class BarangController extends Controller
 
     public function show($id)
     {
-        $barang = Barang::find($id);
+        $barang = Barang::with('foto_barang')->find($id);
         if (!$barang) {
             return response()->json(['message' => 'Barang not found'], 404);
         }
@@ -145,7 +145,9 @@ class BarangController extends Controller
             return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
         }
 
-        $barang = Barang::where('status_barang', 'tersedia')->get();
+        $barang = Barang::with('foto_barang', 'penitip') // tambahkan eager loading relasi foto_barang
+            ->where('status_barang', 'tersedia')
+            ->get();
 
         return response()->json([
             'barang' => $barang,
@@ -155,7 +157,7 @@ class BarangController extends Controller
 
     public function getAllNonBarangForPegawai()
     {
-        $barang = Barang::with('foto_barang')->get(); // Mengambil semua data barang tanpa relasi foto_barang
+        $barang = Barang::with('foto_barang')->get();
 
         return response()->json([
             'barang' => $barang,
