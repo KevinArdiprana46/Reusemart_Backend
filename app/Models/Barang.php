@@ -13,6 +13,8 @@ class Barang extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'id_penitip',
+        'id_pegawai',
         'nama_barang',
         'deskripsi',
         'kategori_barang',
@@ -20,7 +22,8 @@ class Barang extends Model
         'status_barang',
         'stock',
         'rating_barang',
-        'tanggal_garansi'
+        'tanggal_garansi',
+        'created_at'
     ];
 
     // Relasi dengan Pegawai (misalnya)
@@ -47,10 +50,10 @@ class Barang extends Model
 
 
 
-    // public function penitipan()
-    // {
-    //     return $this->belongsTo(Penitipan::class, 'id_barang');
-    // }
+    public function penitipan()
+    {
+        return $this->hasOne(Penitipan::class, 'id_barang');
+    }
 
     public function detailTransaksi()
     {

@@ -118,6 +118,8 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
 
 // 📦 BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
+    Route::post('/', [BarangController::class, 'store']);
+    Route::post('/update/{id}', [BarangController::class, 'update']);
     Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
     Route::get('/terjual', [BarangController::class, 'getBarangTerjual']);
