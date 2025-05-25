@@ -10,6 +10,7 @@ use App\Models\Pegawai;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Auth;
+use DB;
 use Illuminate\Http\Request;
 
 class TransaksiController extends Controller
@@ -155,12 +156,17 @@ class TransaksiController extends Controller
     {
         $pegawai = auth()->user();
 
+        // Cek apakah user adalah Pegawai Gudang
         if (!$pegawai || $pegawai->id_jabatan !== 7) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $transaksi = Transaksi::with(['pembeli', 'penitip.barang'])
+        // Ambil transaksi dengan status tertentu & minimal 2 foto barang
+        $transaksi = Transaksi::with(['pembeli', 'penitip.barang.foto_barang'])
             ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
+            ->whereHas('penitip.barang', function ($query) {
+                $query->has('foto_barang', '>=', 2); // Barang dengan minimal 2 foto
+            })
             ->orderBy('created_at', 'desc')
             ->get();
 

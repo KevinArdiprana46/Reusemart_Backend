@@ -90,10 +90,14 @@ class PenitipanController extends Controller
         $penitipanList = Penitipan::with(['barang.foto_barang'])
             ->where('id_penitip', $penitip->id_penitip)
             ->whereHas('barang', function ($query) use ($keyword) {
-                $query->where('nama_barang', 'LIKE', '%' . $keyword . '%');
+                $query->where(function ($subQuery) use ($keyword) {
+                    $subQuery->where('nama_barang', 'LIKE', '%' . $keyword . '%')
+                        ->orWhere('kategori_barang', 'LIKE', '%' . $keyword . '%')
+                        ->orWhere('deskripsi', 'LIKE', '%' . $keyword . '%')
+                        ->orWhere('harga_barang', 'LIKE', '%' . $keyword . '%');
+                });
             })
             ->get();
-
         if ($penitipanList->isEmpty()) {
             return response()->json([
                 'message' => 'Tidak ada barang ditemukan dengan nama tersebut.',

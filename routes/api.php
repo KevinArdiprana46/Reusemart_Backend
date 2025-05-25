@@ -15,6 +15,7 @@ use App\Http\Controllers\{
     PenitipanController,
     ResetPasswordController,
     TransaksiController,
+    LaporanController,
     UserController
 };
 
@@ -70,16 +71,16 @@ Route::prefix('organisasi')->middleware('auth:sanctum')->group(function () {
 
 // 🧾 DONASI
 Route::prefix('donasi')->middleware('auth:sanctum')->group(function () {
+    Route::get('/diminta', [DonasiController::class, 'getDonasiDiminta']);
+    Route::get('/diterima', [DonasiController::class, 'getDonasiDiterima']);
+    Route::get('/riwayat', [DonasiController::class, 'getRiwayatDonasi']);
+    Route::get('/search', [DonasiController::class, 'search']);
+    Route::post('/kirim/{id}', [DonasiController::class, 'kirimDonasi']);
     Route::get('/', [DonasiController::class, 'index']);
     Route::post('/', [DonasiController::class, 'store']);
     Route::get('/{id}', [DonasiController::class, 'show']);
     Route::put('/{id}', [DonasiController::class, 'update']);
     Route::delete('/{id}', [DonasiController::class, 'destroy']);
-    Route::get('/diminta', [DonasiController::class, 'getDonasiDiminta']);
-    Route::get('/diterima', [DonasiController::class, 'getDonasiDiterima']);
-    Route::get('/riwayat', [DonasiController::class, 'getRiwayatDonasi']);
-    Route::post('/kirim/{id}', [DonasiController::class, 'kirimDonasi']);
-    Route::get('/search', [DonasiController::class, 'search']);
 });
 
 // Tambahan: barang untuk donasi
@@ -102,6 +103,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/poin/pembeli/tambah', [TransaksiController::class, 'tambahPoinPembeli']);
     Route::get('/nota/{id_transaksi}/pdf', [TransaksiController::class, 'generateNotaPDF']);
     Route::get('/transaksi/semua', [TransaksiController::class, 'semuaTransaksi']);
+});
+
+//Laporan
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/laporan/kategori-barang', [LaporanController::class, 'laporanPenjualanKategori']);
+    Route::get('/laporan/barang-penitipan-habis', [LaporanController::class, 'barangPenitipanHabis']);
+    Route::get('/laporan/penjualan-bulanan', [LaporanController::class, 'laporanPenjualanBulanan']);
+
 
 });
 
