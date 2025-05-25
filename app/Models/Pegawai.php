@@ -8,15 +8,18 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Model;
 
-class Pegawai extends Model
+class Pegawai extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'pegawai';
     protected $primaryKey = 'id_pegawai';
 
-    public $timestamps = false;
+    public $incrementing = true; // jika auto-increment
+    protected $keyType = 'int'; // tipe datanya (int, string, dsb)
 
+    public $timestamps = false;
+    
     protected $fillable = [
         'id_jabatan',
         'id_role',
@@ -44,4 +47,3 @@ class Pegawai extends Model
         return $this->belongsTo(Jabatan::class, 'id_jabatan');
     }
 }
-

@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Barang;
+use App\Models\FotoBarang;
+use App\Models\Penitip;
 
 class BarangController extends Controller
 {
@@ -15,7 +17,7 @@ class BarangController extends Controller
 
     public function show($id)
     {
-        $barang = Barang::find($id);
+        $barang = Barang::with('foto_barang')->find($id);
         if (!$barang) {
             return response()->json(['message' => 'Barang not found'], 404);
         }
@@ -107,6 +109,32 @@ class BarangController extends Controller
 
         return response()->json($barang);
     }
+    public function showNon($id)
+    {
+        $barang = Barang::find($id);
+        if (!$barang) {
+            return response()->json(['message' => 'Barang not found'], 404);
+        }
+        return response()->json($barang);
+    }
+
+    public function getNonByKategori($kategori)
+    {
+        // Mengambil barang berdasarkan kategori tanpa autentikasi
+        $barang = Barang::with('foto_barang')
+            ->whereRaw('LOWER(TRIM(kategori_barang)) = ?', [strtolower(trim($kategori))])
+            ->get();
+
+        if ($barang->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada barang ditemukan',
+                'kategori_yang_dicari' => $kategori
+            ], 404);
+        }
+
+        return response()->json($barang);
+    }
+
 
 
     public function getAllBarangForPegawai(Request $request)
@@ -117,13 +145,97 @@ class BarangController extends Controller
             return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
         }
 
-        $barang = Barang::all(); // Mengambil semua data barang tanpa relasi foto_barang
+        $barang = Barang::with('foto_barang', 'penitip') // tambahkan eager loading relasi foto_barang
+            ->where('status_barang', 'tersedia')
+            ->get();
 
         return response()->json([
             'barang' => $barang,
-            'jabatan' => $pegawai->jabatan,
+            'id_jabatan' => $pegawai->id_jabatan,
         ]);
     }
 
+    public function getAllNonBarangForPegawai()
+    {
+        $barang = Barang::with('foto_barang')->get();
 
+        return response()->json([
+            'barang' => $barang,
+
+        ]);
+    }
+
+    public function getBarangTerjual()
+    {
+        $barang = Barang::where('status_barang', 'terjual')
+            ->get();
+
+        return response()->json($barang);
+    }
+
+    public function uploadFotoBarang(Request $request, $id)
+    {
+        $request->validate([
+            'foto_barang' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        $imagePath = $request->file('foto_barang')->store('foto_barang', 'public');
+
+        $foto_barang = FotoBarang::create([
+            'id_barang' => $id,
+            'foto_barang' => $imagePath,
+        ]);
+
+        return response()->json([
+            'message' => 'Foto berhasil ditambahkan',
+            'image_url' => asset('storage/' . $imagePath),
+        ], 201);
+    }
+
+
+    public function beriRatingBarang(Request $request, $id)
+    {
+        $request->validate([
+            'rating_barang' => 'required|integer|min:1|max:5',
+        ]);
+
+        $barang = Barang::find($id);
+
+        if (!$barang) {
+            return response()->json(['message' => 'Barang tidak ditemukan'], 404);
+        }
+
+        // Karena barang cuma satu, langsung ganti rating-nya
+        $barang->rating_barang = $request->rating_barang;
+        $barang->save();
+
+        $this->hitungRatingPenitip($barang->id_penitip);
+
+        return response()->json([
+            'message' => 'Rating berhasil disimpan.',
+            'barang' => $barang
+        ]);
+    }
+
+    public function hitungRatingPenitip($id_penitip)
+    {
+        $rataRata = Barang::where('id_penitip', $id_penitip)
+            ->where('status_barang', 'terjual') // ✅ hanya barang terjual
+            ->whereNotNull('rating_barang')     // ✅ yang sudah dinilai
+            ->avg('rating_barang');
+
+        $penitip = Penitip::find($id_penitip);
+
+        if (!$penitip) {
+            return response()->json(['message' => 'Penitip tidak ditemukan'], 404);
+        }
+
+        $penitip->rating_penitip = $rataRata ? round($rataRata, 2) : 0;
+        $penitip->save();
+
+        return response()->json([
+            'message' => 'Rating penitip berhasil didapatkan.',
+            'rating_penitip' => $penitip->rating_penitip
+        ]);
+    }
 }

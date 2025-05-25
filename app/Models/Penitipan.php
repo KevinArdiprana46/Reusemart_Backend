@@ -13,6 +13,7 @@ class Penitipan extends Model
     protected $fillable = [
         'id_penitip',
         'id_barang',
+        'nama_qc',
         'tanggal_masuk',
         'tanggal_akhir',
         'batas_pengambilan',

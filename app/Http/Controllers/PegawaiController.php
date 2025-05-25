@@ -27,16 +27,16 @@ class PegawaiController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'id_jabatan' => 'nullable|integer|exists:jabatan,id_jabatan',
-            'nama_lengkap' => 'required|string|max:255',
-            'alamat' => 'required|string|max:255',
-            'no_telepon' => 'required|string|max:20',
-            'email' => 'required|email|unique:pegawai,email',
-            'gender' => 'required|in:Laki-laki,Perempuan',
-            'tanggal_lahir' => 'required|date',
-            'password' => 'required|string|min:6',
-            'komisi_hunter' => 'required|numeric|min:0',
-            'image_user' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'id_jabatan'     => 'nullable|integer|exists:jabatan,id_jabatan',
+            'nama_lengkap'   => 'required|string|max:255',
+            'alamat'         => 'required|string|max:255',
+            'no_telepon'     => 'required|string|max:20',
+            'email'          => 'required|email|unique:pegawai,email',
+            'gender'         => 'required|in:Laki-laki,Perempuan',
+            'tanggal_lahir'  => 'required|date',
+            'password'       => 'required|string|min:6',
+            'komisi_hunter'  => 'nullable|numeric|min:0',
+            'image_user'     => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -48,17 +48,17 @@ class PegawaiController extends Controller
             : null;
 
         $pegawai = Pegawai::create([
-            'id_jabatan' => $request->id_jabatan,
-            'id_role' => 1,
-            'nama_lengkap' => $request->nama_lengkap,
-            'alamat' => $request->alamat,
-            'no_telepon' => $request->no_telepon,
-            'email' => $request->email,
-            'gender' => $request->gender,
-            'tanggal_lahir' => $request->tanggal_lahir,
-            'password' => Hash::make($request->password),
-            'komisi_hunter' => $request->komisi_hunter,
-            'image_user' => $imagePath ?? 'default.jpg',
+            'id_jabatan'     => $request->id_jabatan,
+            'id_role'        => 1,
+            'nama_lengkap'   => $request->nama_lengkap,
+            'alamat'         => $request->alamat,
+            'no_telepon'     => $request->no_telepon,
+            'email'          => $request->email,
+            'gender'         => $request->gender,
+            'tanggal_lahir'  => $request->tanggal_lahir,
+            'password'       => Hash::make($request->password),
+            'komisi_hunter'  => 0,
+            'image_user'     => $imagePath ?? 'default.jpg',
         ]);
 
         return response()->json([
@@ -73,16 +73,16 @@ class PegawaiController extends Controller
         $pegawai = Pegawai::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'id_jabatan' => 'nullable|integer|exists:jabatan,id_jabatan',
-            'nama_lengkap' => 'sometimes|required|string|max:255',
-            'alamat' => 'sometimes|required|string|max:255',
-            'no_telepon' => 'sometimes|required|string|max:20',
-            'email' => 'sometimes|required|email|unique:pegawai,email,' . $id . ',id_pegawai',
-            'gender' => 'sometimes|required|in:Laki-laki,Perempuan',
-            'tanggal_lahir' => 'sometimes|required|date',
-            'password' => 'nullable|string|min:6',
-            'komisi_hunter' => 'sometimes|required|numeric|min:0',
-            'image_user' => 'sometimes|nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'id_jabatan'     => 'nullable|integer|exists:jabatan,id_jabatan',
+            'nama_lengkap'   => 'sometimes|required|string|max:255',
+            'alamat'         => 'sometimes|required|string|max:255',
+            'no_telepon'     => 'sometimes|required|string|max:20',
+            'email'          => 'sometimes|required|email|unique:pegawai,email,' . $id . ',id_pegawai',
+            'gender'         => 'sometimes|required|in:Laki-laki,Perempuan',
+            'tanggal_lahir'  => 'sometimes|required|date',
+            'password'       => 'nullable|string|min:6',
+            'komisi_hunter'  => 'nullable|numeric|min:0',
+            'image_user'     => 'sometimes|nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -143,4 +143,12 @@ class PegawaiController extends Controller
         return response()->json($transaksi);
     }
 
+    public function getDaftarPegawai()
+    {
+        $pegawai = Pegawai::with(['jabatan', 'role'])
+            ->where('id_role', 1)
+            ->get();
+
+        return response()->json($pegawai);
+    }
 }

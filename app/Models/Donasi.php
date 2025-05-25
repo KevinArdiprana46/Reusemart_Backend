@@ -20,6 +20,7 @@ class Donasi extends Model
         'pesan_request',
         'status_donasi',
         'tanggal_donasi',
+        'nama_penerima',
         'id_barang',
         'id_organisasi',
     ];

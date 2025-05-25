@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\DetailTransaksi;
-use App\Models\Transaksi;
-use App\Models\Penitipan;
 use App\Models\Barang;
+use App\Models\DetailTransaksi;
 use App\Models\Pegawai;
-use Carbon\Carbon;
-use Barryvdh\DomPDF\Facade\Pdf;
+use App\Models\Penitipan;
+use App\Models\Transaksi;
+use App\Models\Penitip;
 use Auth;
 use DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class TransaksiController extends Controller
 {
