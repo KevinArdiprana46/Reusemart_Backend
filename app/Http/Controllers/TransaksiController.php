@@ -12,7 +12,8 @@ use Auth;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use App\Services\TransaksiService;
+use Illuminate\Support\Facades\Mail;
+
 
 class TransaksiController extends Controller
 {
@@ -169,7 +170,6 @@ class TransaksiController extends Controller
         return response()->json($transaksi);
     }
 
-
     public function jadwalkanPengirimanKurir(Request $request, $id_transaksi)
     {
         $request->validate([
@@ -181,11 +181,12 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $transaksi = Transaksi::find($id_transaksi);
-        if (!$transaksi)
+        $transaksi = Transaksi::with(['pembeli', 'penitip'])->find($id_transaksi);
+        if (!$transaksi) {
             return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
+        }
 
-        if (strtolower($transaksi->jenis_pengiriman) !== 'dikirim kurir reusemart') {
+        if (strcasecmp($transaksi->jenis_pengiriman, 'kurir reusemart') !== 0) {
             return response()->json(['message' => 'Transaksi ini bukan jenis pengiriman dengan kurir Reusemart'], 422);
         }
 
@@ -201,13 +202,28 @@ class TransaksiController extends Controller
         }
 
         $transaksi->id_pegawai = $kurir->id_pegawai;
-        $transaksi->status_transaksi = 'sedang disiapkan';
+        $transaksi->status_transaksi = 'dikirim';
         $transaksi->save();
 
-        \Log::info("📦 Transaksi {$transaksi->id_transaksi} dijadwalkan dikirim oleh kurir {$kurir->nama_lengkap}");
+        // Notifikasi email ke pembeli, penitip, dan kurir (tanpa Mail class)
+        if ($transaksi->pembeli && $transaksi->pembeli->email) {
+            Mail::raw("Halo {$transaksi->pembeli->nama_lengkap},\n\nBarang dengan nota {$transaksi->nomor_nota} akan segera dikirim oleh kurir.", function ($message) use ($transaksi) {
+                $message->to($transaksi->pembeli->email)->subject('📦 Barang Akan Dikirim');
+            });
+        }
+        if ($transaksi->penitip && $transaksi->penitip->email) {
+            Mail::raw("Halo {$transaksi->penitip->nama_lengkap},\n\nBarang dari penitipan Anda sedang dikirim ke pembeli.", function ($message) use ($transaksi) {
+                $message->to($transaksi->penitip->email)->subject('📦 Barang Penitipan Dikirim');
+            });
+        }
+        if ($kurir && $kurir->email) {
+            Mail::raw("Halo {$kurir->nama_lengkap},\n\nAnda ditugaskan untuk mengirim barang dengan nota {$transaksi->nomor_nota}.", function ($message) use ($kurir) {
+                $message->to($kurir->email)->subject('🚚 Penugasan Pengiriman Barang');
+            });
+        }
 
         return response()->json([
-            'message' => 'Pengiriman dengan kurir berhasil dijadwalkan.',
+            'message' => 'Pengiriman dengan kurir berhasil dijadwalkan dan notifikasi telah dikirim.',
             'data' => $transaksi,
         ]);
     }
@@ -219,25 +235,37 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $transaksi = Transaksi::find($id_transaksi);
-        if (!$transaksi)
+        $transaksi = Transaksi::with(['pembeli', 'penitip'])->find($id_transaksi);
+        if (!$transaksi) {
             return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
+        }
 
         if (strtolower($transaksi->jenis_pengiriman) !== 'pengambilan mandiri') {
             return response()->json(['message' => 'Jenis pengiriman bukan untuk ambil sendiri'], 422);
         }
 
-        $transaksi->status_transaksi = 'sedang disiapkan';
+        $transaksi->status_transaksi = 'selesai';
+        $transaksi->tanggal_pelunasan = now();
         $transaksi->save();
 
-        \Log::info("🛒 Transaksi {$transaksi->id_transaksi} akan diambil langsung oleh pembeli");
-        \Log::info("📢 Notif: Penitip & pembeli diberi tahu transaksi {$transaksi->id_transaksi} akan diambil langsung.");
+        // Notifikasi email ke pembeli dan penitip
+        if ($transaksi->pembeli && $transaksi->pembeli->email) {
+            Mail::raw("Halo {$transaksi->pembeli->nama_lengkap},\n\nTransaksi {$transaksi->nomor_nota} telah dijadwalkan untuk pengambilan mandiri dan dianggap selesai.", function ($message) use ($transaksi) {
+                $message->to($transaksi->pembeli->email)->subject('📦 Barang Siap Diambil');
+            });
+        }
+        if ($transaksi->penitip && $transaksi->penitip->email) {
+            Mail::raw("Halo {$transaksi->penitip->nama_lengkap},\n\nBarang Anda telah dijadwalkan untuk diambil langsung oleh pembeli.", function ($message) use ($transaksi) {
+                $message->to($transaksi->penitip->email)->subject('📦 Barang Diambil Mandiri');
+            });
+        }
 
         return response()->json([
-            'message' => 'Transaksi dicatat sebagai pengambilan mandiri.',
+            'message' => 'Transaksi dicatat sebagai pengambilan mandiri (selesai).',
             'data' => $transaksi,
         ]);
     }
+
 
     public function konfirmasiBarangDiterima($id_transaksi)
     {
@@ -258,11 +286,33 @@ class TransaksiController extends Controller
         }
 
         $transaksi->status_transaksi = 'selesai';
+        $transaksi->tanggal_pelunasan = now(); // jika belum diset sebelumnya
         $transaksi->save();
 
+        // Log (opsional)
         \Log::info("✅ Transaksi {$transaksi->id_transaksi} dikonfirmasi selesai oleh pegawai gudang.");
-        \Log::info("📢 Notif ke pembeli: Barang Anda telah diterima.");
-        \Log::info("📢 Notif ke penitip: Barang Anda telah berhasil diambil oleh pembeli.");
+
+        // Kirim email ke pembeli
+        if ($transaksi->pembeli && $transaksi->pembeli->email) {
+            Mail::raw(
+                "Halo {$transaksi->pembeli->nama_lengkap},\n\nBarang dengan nota {$transaksi->nomor_nota} telah berhasil diterima. Terima kasih telah berbelanja di ReuseMart.",
+                function ($message) use ($transaksi) {
+                    $message->to($transaksi->pembeli->email)
+                        ->subject('📦 Barang Telah Diterima');
+                }
+            );
+        }
+
+        // Kirim email ke penitip
+        if ($transaksi->penitip && $transaksi->penitip->email) {
+            Mail::raw(
+                "Halo {$transaksi->penitip->nama_lengkap},\n\nBarang penitipan Anda dengan transaksi {$transaksi->nomor_nota} telah berhasil diambil oleh pembeli.",
+                function ($message) use ($transaksi) {
+                    $message->to($transaksi->penitip->email)
+                        ->subject('📢 Barang Anda Telah Diambil Pembeli');
+                }
+            );
+        }
 
         return response()->json([
             'message' => 'Transaksi berhasil dikonfirmasi selesai.',
@@ -548,10 +598,10 @@ class TransaksiController extends Controller
 
         $bolehDiproses = false;
 
-        // Case 1: Transaksi selesai
-        if ($transaksi->status_transaksi === 'selesai') {
+        if (in_array($transaksi->status_transaksi, ['selesai', 'dikirim'])) {
             $bolehDiproses = true;
         }
+
 
         // Case 2: Transaksi sedang disiapkan & pengiriman oleh kurir reusemart
         if (
