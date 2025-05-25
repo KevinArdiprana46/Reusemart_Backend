@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\Penitipan;
 use Carbon\Carbon;
 use App\Models\Barang;
-use Carbon\Carbon;
 
 use Illuminate\Support\Facades\Auth;
 

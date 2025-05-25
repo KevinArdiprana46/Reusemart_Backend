@@ -100,11 +100,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/gudang/transaksi/jadwalkan-ambil-sendiri/{id_transaksi}', [TransaksiController::class, 'jadwalkanAmbilSendiri']);
     Route::post('/gudang/transaksi/konfirmasi-diterima/{id_transaksi}', [TransaksiController::class, 'konfirmasiBarangDiterima']);
     Route::post('/transaksi/hanguskan-otomatis', [TransaksiController::class, 'cekTransaksiHangus']);
-    Route::get('/komisi/hunter', [TransaksiController::class, 'hitungKomisiHunter']);
+    Route::post('/gudang/transaksi/hitung-komisi-hunter/{id_transaksi}', [TransaksiController::class, 'hitungKomisiHunterByTransaksi']);
+    // Komisi
     Route::get('/komisi/reusemart', [TransaksiController::class, 'hitungKomisiReusemart']);
     Route::get('/komisi/penitip', [TransaksiController::class, 'hitungKomisiPenitip']);
-    Route::get('/komisi/penitip/tambah-saldo', [TransaksiController::class, 'tambahSaldoPenitip']);
-    Route::get('/poin/pembeli/tambah', [TransaksiController::class, 'tambahPoinPembeli']);
+    // Saldo
+    Route::get('/saldo/penitip', [TransaksiController::class, 'tambahSaldoPenitip']);
+    // Poin
+    Route::get('/poin/pembeli', [TransaksiController::class, 'tambahPoinPembeli']);
+    // Proses final satu transaksi (opsional efisien)
+    Route::post('/transaksi/proses-final/{id}', [TransaksiController::class, 'prosesFinalTransaksi']);
     Route::get('/nota/{id_transaksi}/pdf', [TransaksiController::class, 'generateNotaPDF']);
     Route::get('/transaksi/semua', [TransaksiController::class, 'semuaTransaksi']);
 });
@@ -122,8 +127,10 @@ Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/daftar', [PegawaiController::class, 'getDaftarPegawai']);
     Route::post('/store', [PegawaiController::class, 'store']);
     Route::post('/update/{id}', [PegawaiController::class, 'update']);
+    Route::get('/kurir', [PegawaiController::class, 'getListKurir']);
     Route::get('/{id}', [PegawaiController::class, 'show']);
     Route::delete('/delete/{id}', [PegawaiController::class, 'destroy']);
+
 });
 Route::middleware('auth:sanctum')->post('/admin/reset-password/pegawai', [AdminController::class, 'resetPasswordPegawai']);
 
@@ -144,9 +151,9 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
 // 📦 BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
+    Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
     Route::get('/{id}', [BarangController::class, 'show']);
     Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);
-    Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
     Route::get('/terjual', [BarangController::class, 'getBarangTerjual']);
 
 
@@ -156,7 +163,7 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
 
 });
-    Route::get('/non/all', [BarangController::class, 'getAllBarangForPegawai']);
+Route::get('/non/all', [BarangController::class, 'getAllBarangForPegawai']);
 
 //NonLogin
 Route::get('barang/{id}', [BarangController::class, 'show']);

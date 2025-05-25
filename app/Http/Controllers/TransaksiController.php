@@ -12,6 +12,7 @@ use Auth;
 use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use App\Services\TransaksiService;
 
 class TransaksiController extends Controller
 {
@@ -156,22 +157,18 @@ class TransaksiController extends Controller
     {
         $pegawai = auth()->user();
 
-        // Cek apakah user adalah Pegawai Gudang
         if (!$pegawai || $pegawai->id_jabatan !== 7) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Ambil transaksi dengan status tertentu & minimal 2 foto barang
         $transaksi = Transaksi::with(['pembeli', 'penitip.barang.foto_barang'])
             ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
-            ->whereHas('penitip.barang', function ($query) {
-                $query->has('foto_barang', '>=', 2); // Barang dengan minimal 2 foto
-            })
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json($transaksi);
     }
+
 
     public function jadwalkanPengirimanKurir(Request $request, $id_transaksi)
     {
@@ -226,7 +223,7 @@ class TransaksiController extends Controller
         if (!$transaksi)
             return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
 
-        if (strtolower($transaksi->jenis_pengiriman) !== 'pengambilan sendiri') {
+        if (strtolower($transaksi->jenis_pengiriman) !== 'pengambilan mandiri') {
             return response()->json(['message' => 'Jenis pengiriman bukan untuk ambil sendiri'], 422);
         }
 
@@ -276,7 +273,6 @@ class TransaksiController extends Controller
     public function cekTransaksiHangus()
     {
         $now = Carbon::now();
-
         $expiredTransaksi = Transaksi::with('penitip.penitipan')
             ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
             ->whereDate('tanggal_pengambilan', '<', $now->copy()->subDays(2)->toDateString())
@@ -300,53 +296,54 @@ class TransaksiController extends Controller
                 }
             }
 
-            \Log::info("🔥 Transaksi #{$transaksi->id_transaksi} hangus. Barang jadi donasi.");
+            Log::info("🔥 Transaksi #{$transaksi->id_transaksi} hangus. Barang jadi donasi.");
             $jumlah++;
         }
 
-        return response()->json([
-            'message' => 'Cek dan update transaksi hangus selesai.',
-            'jumlah_dihanguskan' => $jumlah,
-        ]);
+        return $jumlah;
     }
 
-    public function hitungKomisiHunter()
+
+    public function hitungKomisiHunterByTransaksi($id_transaksi)
     {
-        $transaksiList = Transaksi::with(['penitip.penitipan.barang', 'pegawai'])
-            ->where('status_transaksi', 'selesai')
-            ->get();
+        $transaksi = Transaksi::with(['penitip.penitipan.barang', 'pegawai'])->find($id_transaksi);
 
-        $totalKomisi = 0;
-
-        foreach ($transaksiList as $transaksi) {
-            // Validasi hanya jika pegawai adalah hunter
-            $pegawai = $transaksi->pegawai;
-            if (!$pegawai || $pegawai->id_jabatan != 5) {
-                continue;
-            }
-
-            // Loop semua barang dari penitipan milik penitip transaksi ini
-            $penitipanList = $transaksi->penitip->penitipan ?? [];
-
-            foreach ($penitipanList as $penitipan) {
-                $barang = $penitipan->barang ?? null;
-
-                if ($barang && strtolower($barang->status_barang) === 'terjual') {
-                    $komisi = 0.05 * $barang->harga_barang;
-                    $pegawai->komisi_hunter += $komisi;
-                    $totalKomisi += $komisi;
-
-                    \Log::info("💸 Komisi Rp{$komisi} untuk Hunter {$pegawai->nama_lengkap} dari barang {$barang->nama_barang}");
-                }
-            }
-            $pegawai->save();
+        if (!$transaksi || !in_array($transaksi->status_transaksi, ['selesai', 'hangus'])) {
+            return response()->json(['message' => 'Transaksi tidak valid untuk komisi'], 400);
         }
 
+        if ($transaksi->komisi_dihitung) {
+            return response()->json(['message' => 'Komisi sudah dihitung sebelumnya'], 409);
+        }
+
+        $pegawai = $transaksi->pegawai;
+        if (!$pegawai || $pegawai->id_jabatan != 5) {
+            return response()->json(['message' => 'Pegawai bukan hunter'], 422);
+        }
+
+        $totalKomisi = 0;
+        $penitipanList = $transaksi->penitip->penitipan ?? [];
+
+        foreach ($penitipanList as $penitipan) {
+            $barang = $penitipan->barang ?? null;
+            if ($barang && strtolower($barang->status_barang) === 'terjual') {
+                $komisi = 0.05 * $barang->harga_barang;
+                $pegawai->komisi_hunter += $komisi;
+                $totalKomisi += $komisi;
+            }
+        }
+
+        $pegawai->save();
+        $transaksi->komisi_dihitung = true;
+        $transaksi->save();
+
         return response()->json([
-            'message' => 'Perhitungan komisi hunter selesai.',
+            'message' => 'Komisi berhasil dihitung.',
             'total_komisi' => $totalKomisi,
         ]);
     }
+
+
 
     public function hitungKomisiReusemart()
     {
@@ -536,6 +533,125 @@ class TransaksiController extends Controller
             'total_poin_diberikan' => $totalPoinDiberikan
         ]);
     }
+
+    public function prosesFinalTransaksi($id_transaksi)
+    {
+        $transaksi = Transaksi::with([
+            'penitip.penitipan.barang',
+            'pembeli',
+            'pegawai'
+        ])->find($id_transaksi);
+
+        if (!$transaksi || $transaksi->status_transaksi !== 'selesai') {
+            return response()->json(['message' => 'Transaksi tidak valid atau belum selesai.'], 422);
+        }
+
+        // 1. Komisi ReuseMart
+        if (!$transaksi->komisi_reusemart_dihitung) {
+            $totalKomisi = 0;
+            foreach ($transaksi->penitip->penitipan as $p) {
+                $barang = $p->barang;
+                if ($barang && strtolower($barang->status_barang) === 'terjual') {
+                    $tanggalMasuk = Carbon::parse($p->tanggal_masuk);
+                    $hari = $tanggalMasuk->diffInDays(Carbon::now());
+                    $komisi = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
+                        ? ($hari <= 7 ? 0.15 : 0.20)
+                        : 0.25;
+                    $nilai = $komisi * $barang->harga_barang;
+                    $totalKomisi += $nilai;
+                    \Log::info("💼 Komisi ReuseMart Rp{$nilai} dari barang ID {$barang->id_barang}");
+                }
+            }
+            $transaksi->komisi_reusemart = $totalKomisi;
+            $transaksi->komisi_reusemart_dihitung = true;
+            $transaksi->save();
+        }
+
+        // 2. Komisi Penitip
+        if (!$transaksi->komisi_penitip_dihitung) {
+            $penitip = $transaksi->penitip;
+            $total = 0;
+            foreach ($penitip->penitipan as $p) {
+                $barang = $p->barang;
+                if ($barang && strtolower($barang->status_barang) === 'terjual') {
+                    $tanggalMasuk = Carbon::parse($p->tanggal_masuk);
+                    $tanggalTerjual = Carbon::parse($transaksi->tanggal_pelunasan);
+                    $selisihHari = $tanggalMasuk->diffInDays($tanggalTerjual);
+                    $komisiReusemart = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
+                        ? ($selisihHari <= 7 ? 0.15 : 0.20)
+                        : 0.25;
+                    $nilaiKomisi = $komisiReusemart * $barang->harga_barang;
+                    $bonus = $selisihHari < 7 ? 0.1 * $nilaiKomisi : 0;
+                    $komisiPenitip = $barang->harga_barang - $nilaiKomisi + $bonus;
+                    $penitip->komisi += $komisiPenitip;
+                    $penitip->bonus += $bonus;
+                    $total += $komisiPenitip;
+
+                    \Log::info("✅ Komisi Penitip Rp{$komisiPenitip} + bonus Rp{$bonus} dari barang ID {$barang->id_barang}");
+                }
+            }
+            $penitip->save();
+            $transaksi->komisi_penitip_dihitung = true;
+            $transaksi->save();
+        }
+
+        // 3. Tambah Saldo Penitip
+        if (!$transaksi->saldo_ditambahkan) {
+            $penitip = $transaksi->penitip;
+            $totalSaldo = 0;
+            foreach ($penitip->penitipan as $p) {
+                $barang = $p->barang;
+                if ($barang && strtolower($barang->status_barang) === 'terjual') {
+                    $hari = Carbon::parse($p->tanggal_masuk)->diffInDays(Carbon::now());
+                    $komisiReusemart = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
+                        ? ($hari <= 7 ? 0.15 : 0.20)
+                        : 0.25;
+                    $komisi = $komisiReusemart * $barang->harga_barang;
+                    $penghasilan = $barang->harga_barang - $komisi;
+                    $totalSaldo += $penghasilan;
+                }
+            }
+            $penitip->saldo += $totalSaldo;
+            $penitip->save();
+            $transaksi->saldo_ditambahkan = true;
+            $transaksi->save();
+        }
+
+        // 4. Tambah Poin Pembeli
+        if (!$transaksi->poin_diberikan && $transaksi->pembeli) {
+            $poin = floor($transaksi->total_pembayaran / 10000);
+            if ($poin > 0) {
+                $transaksi->pembeli->poin_sosial += $poin;
+                $transaksi->pembeli->save();
+                \Log::info("🎁 Poin +{$poin} ditambahkan ke {$transaksi->pembeli->nama_lengkap}");
+            }
+            $transaksi->poin_diberikan = true;
+            $transaksi->save();
+        }
+
+        // 5. Komisi Hunter
+        if (!$transaksi->komisi_hunter_dihitung) {
+            $pegawai = $transaksi->pegawai;
+            if ($pegawai && $pegawai->id_jabatan == 5) {
+                $totalKomisiHunter = 0;
+                foreach ($transaksi->penitip->penitipan as $p) {
+                    $barang = $p->barang;
+                    if ($barang && strtolower($barang->status_barang) === 'terjual') {
+                        $komisi = 0.05 * $barang->harga_barang;
+                        $pegawai->komisi_hunter += $komisi;
+                        $totalKomisiHunter += $komisi;
+                        \Log::info("💸 Komisi Hunter Rp{$komisi} untuk {$pegawai->nama_lengkap} dari barang ID {$barang->id_barang}");
+                    }
+                }
+                $pegawai->save();
+                $transaksi->komisi_hunter_dihitung = true;
+                $transaksi->save();
+            }
+        }
+
+        return response()->json(['message' => 'Semua proses final transaksi berhasil.']);
+    }
+
 
     public function ambilPenitipanDariTransaksi($id_transaksi)
     {
