@@ -110,8 +110,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/laporan/kategori-barang', [LaporanController::class, 'laporanPenjualanKategori']);
     Route::get('/laporan/barang-penitipan-habis', [LaporanController::class, 'barangPenitipanHabis']);
     Route::get('/laporan/penjualan-bulanan', [LaporanController::class, 'laporanPenjualanBulanan']);
-
-
 });
 
 // 👷‍♂ PEGAWAI
@@ -139,11 +137,11 @@ Route::middleware('auth:sanctum')->prefix('penitipan')->group(function () {
 
 //ROUTE BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
-    Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
     Route::get('/{id}', [BarangController::class, 'show']);
     Route::get('/', [BarangController::class, 'index']);
 });
+    Route::get('/non/all', [BarangController::class, 'getAllBarangForPegawai']);
 
 // // DISKUSI
 // Route::middleware('auth:sanctum')->group(function () {
