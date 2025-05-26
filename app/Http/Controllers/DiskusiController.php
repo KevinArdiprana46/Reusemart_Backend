@@ -30,6 +30,7 @@ class DiskusiController extends Controller
         $request->validate([
             'id_barang' => 'required|exists:barang,id_barang',
             'pesan_diskusi' => 'required|string',
+            'created_at'
         ]);
 
         $role = $request->header('Role'); // Ambil role dari header

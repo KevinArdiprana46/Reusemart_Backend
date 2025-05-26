@@ -91,7 +91,7 @@ class TransaksiController extends Controller
                 return [
                     'nama_barang' => $d->barang->nama_barang ?? '-',
                     'kategori_barang' => $d->barang->kategori_barang ?? '-',
-                    'harga' => $d->barang->harga ?? 0,
+                    'harga' => $d->barang->harga_barang  ?? 0,
                     'jumlah' => $d->jumlah,
                 ];
             });
