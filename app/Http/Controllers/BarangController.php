@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Auth;
 use Illuminate\Http\Request;
 use App\Models\Barang;
 use App\Models\FotoBarang;
@@ -238,4 +239,5 @@ class BarangController extends Controller
             'rating_penitip' => $penitip->rating_penitip
         ]);
     }
+
 }

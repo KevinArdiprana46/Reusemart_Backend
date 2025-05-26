@@ -201,4 +201,45 @@ class PenitipanController extends Controller
             'data' => $penitipan
         ]);
     }
+
+    public function konfirmasiPengambilanKembali($id_barang)
+    {
+        $pegawai = Auth::user();
+
+        if (!$pegawai || $pegawai->id_jabatan !== 7) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $penitipan = Penitipan::where('id_barang', $id_barang)->first();
+
+        if (!$penitipan) {
+            return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
+        }
+
+        if ($penitipan->status_perpanjangan === 'diambil') {
+            return response()->json(['message' => 'Barang sudah pernah diambil.'], 400);
+        }
+
+        $penitipan->status_perpanjangan = 'diambil';
+        $penitipan->batas_pengambilan = now();
+        $penitipan->save();
+
+        return response()->json([
+            'message' => 'Barang berhasil dikonfirmasi telah diambil oleh penitip.',
+            'data' => $penitipan,
+        ]);
+    }
+
+    public function index()
+    {
+        $pegawai = auth()->user();
+
+        if (!$pegawai || $pegawai->id_jabatan !== 7) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $penitipan = Penitipan::with(['barang', 'penitip'])->get();
+        return response()->json($penitipan);
+    }
+
 }

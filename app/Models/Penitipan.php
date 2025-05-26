@@ -8,7 +8,7 @@ class Penitipan extends Model
 {
     protected $table = 'penitipan';
     protected $primaryKey = 'id_penitipan';
-    public $timestamps = true;
+    public $timestamps = false;
 
     protected $fillable = [
         'id_penitip',

@@ -138,13 +138,15 @@ Route::middleware('auth:sanctum')->post('/admin/reset-password/pegawai', [AdminC
 Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::get('/barang', [PenitipanController::class, 'showBarangPenitip']);
     Route::post('/store', [PenitipanController::class, 'storePenitipanBarang']);
-
+    Route::get('/show', [PenitipanController::class, 'index']);
 
     Route::get('/barang/kategori/{kategori}', [PenitipanController::class, 'getBarangByKategori'])->where('kategori', '.*');
     Route::get('/show/{id}', [PenitipanController::class, 'show']);
     Route::get('/search', [PenitipanController::class, 'searchBarangByNama']);
     Route::post('/perpanjang/{id}', [PenitipanController::class, 'perpanjangPenitipan']);
     Route::post('/gudang/penitipan/ambil/{id}', [PenitipanController::class, 'konfirmasiPengambilan']);
+    Route::post('/ambil-kembali/{id_barang}', [PenitipanController::class, 'konfirmasiPengambilanKembali']);
+
 
 });
 
@@ -160,6 +162,7 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/', [BarangController::class, 'index']);
     Route::put('/rating/{id}', [BarangController::class, 'beriRatingBarang']);
     Route::get('/hitung-rating/{id}', [BarangController::class, 'hitungRatingPenitip']);
+
     // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
 
 });
