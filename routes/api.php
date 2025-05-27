@@ -16,7 +16,8 @@ use App\Http\Controllers\{
     ResetPasswordController,
     TransaksiController,
     UserController,
-    DiskusiController
+    DiskusiController,
+    KeranjangController
 };
 
 // 🔐 AUTH / REGISTER / LOGIN
@@ -92,6 +93,12 @@ Route::prefix('diskusi')->middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-pembelian', [TransaksiController::class, 'riwayatPembelian']);
     Route::get('/riwayat-penjualan', [TransaksiController::class, 'riwayatPenjualan']);
+    Route::post('/checkout', [TransaksiController::class, 'checkout']);
+    Route::post('/transaksi/upload-bukti/{id}', [TransaksiController::class, 'uploadBuktiPembayaran']);
+    Route::get('/transaksi/dibayar', [TransaksiController::class, 'getTransaksiDibayar']);
+    Route::post('/transaksi/verifikasi/{id}', [TransaksiController::class, 'verifikasiTransaksi']);
+    Route::post('/transaksi/tolak/{id}', [TransaksiController::class, 'tolakTransaksi']);
+
 });
 
 // 👷‍♂️ PEGAWAI
@@ -132,3 +139,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/diskusi/kirim', [DiskusiController::class, 'kirimPesan']);
     Route::post('/diskusi/baca/{id_barang}', [DiskusiController::class, 'tandaiDiskusiSudahDibaca']);
 });
+
+//Keranjang
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/keranjang/tambah', [KeranjangController::class, 'tambah']);
+    Route::delete('/keranjang/hapus/{id}', [KeranjangController::class, 'hapus']);
+    Route::get('/keranjang', [KeranjangController::class, 'index']);
+    Route::get('/keranjang/count', [KeranjangController::class, 'getCount']);
+});
+

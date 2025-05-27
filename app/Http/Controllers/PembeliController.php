@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Auth;
 use Illuminate\Http\Request;
 use App\Models\Pembeli;
+use App\Models\Alamat;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Storage;
@@ -59,15 +60,25 @@ class PembeliController extends Controller
 
     public function profile(Request $request)
     {
-        $pembeli = Pembeli::find(auth()->id()); // atau sesuaikan sendiri
+        $pembeli = Pembeli::with('alamat')->find(auth()->user()->id_pembeli);
+
 
         if (!$pembeli) {
             return response()->json(['message' => 'Data tidak ditemukan'], 404);
         }
 
-        return response()->json($pembeli);
-    }
+        return response()->json([
+            'id_pembeli' => $pembeli->id_pembeli,
+            'nama_lengkap' => $pembeli->nama_lengkap,
+            'email' => $pembeli->email,
+            'no_telepon' => $pembeli->no_telepon,
+            'tanggal_lahir' => $pembeli->tanggal_lahir,
+            'poin_sosial' => $pembeli->poin_sosial,
+            'image_user' => $pembeli->image_user,
+            'alamat' => $pembeli->alamat
+        ]);
 
+    }
 
 
     public function update(Request $request)

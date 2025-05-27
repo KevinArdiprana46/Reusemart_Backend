@@ -7,11 +7,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Transaksi extends Model
 {
     use HasFactory;
-
+    public $timestamps = true;
     protected $table = 'transaksi';
     protected $primaryKey = 'id_transaksi';
-    public $timestamps = true; // timestamps aktif (created_at & updated_at)
-
     protected $fillable = [
         'id_pembeli',
         'id_penitip',
