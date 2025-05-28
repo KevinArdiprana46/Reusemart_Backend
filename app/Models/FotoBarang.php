@@ -20,7 +20,7 @@ class FotoBarang extends Model
     'foto_barang',
   ];
 
-  protected function barang()
+  public function barang()
   {
     return $this->belongsTo(Barang::class, 'id_barang');
   }

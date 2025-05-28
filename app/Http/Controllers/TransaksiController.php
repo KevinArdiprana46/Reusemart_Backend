@@ -154,15 +154,12 @@ class TransaksiController extends Controller
         return response()->json(['message' => 'Konfirmasi pengambilan berhasil.']);
     }
 
-    public function transaksiGudang(Request $request)
+    public function transaksiGudang()
     {
-        $pegawai = auth()->user();
-
-        if (!$pegawai || $pegawai->id_jabatan !== 7) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $transaksi = Transaksi::with(['pembeli', 'penitip.barang.foto_barang'])
+        $transaksi = Transaksi::with([
+            'pembeli',
+            'detailtransaksi.barang.foto_barang'
+        ])
             ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
             ->orderBy('created_at', 'desc')
             ->get();
