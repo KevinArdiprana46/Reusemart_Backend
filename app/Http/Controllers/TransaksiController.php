@@ -761,7 +761,7 @@ class TransaksiController extends Controller
         }
 
         $transaksi = Transaksi::with([
-            'detailtransaksi.barang.detailPenitipan.penitipan', // ini relasi yang benar
+            'detailtransaksi.barang.detailPenitipan.penitipan',
             'pembeli.alamat',
             'pegawai'
         ])->orderByDesc('created_at')->get();
