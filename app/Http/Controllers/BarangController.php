@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Barang;
 use App\Models\FotoBarang;
 use App\Models\Penitip;
+use App\Models\DetailPenitipan;
 use Illuminate\Support\Facades\Storage;
 
 class BarangController extends Controller
@@ -223,7 +224,7 @@ class BarangController extends Controller
             return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
         }
 
-        $barang = Barang::with('foto_barang', 'penitip') // tambahkan eager loading relasi foto_barang
+        $barang = Barang::with('foto_barang') // tambahkan eager loading relasi foto_barang
             ->where('status_barang', 'tersedia')
             ->get();
 
@@ -321,7 +322,6 @@ class BarangController extends Controller
     {
         $barang = Barang::with([
             'foto_barang',
-            'penitip',
             'detailpenitipan.penitipan'
         ])->find($id);
 
@@ -333,5 +333,64 @@ class BarangController extends Controller
             'message' => 'Detail barang berhasil diambil',
             'data' => $barang,
         ]);
+    }
+
+    public function storeBarangDalamPenitipan(Request $request, $id_penitipan)
+    {
+        $request->validate([
+            'nama_barang' => 'required|string|max:255',
+            'kategori_barang' => 'required|string|max:255',
+            'deskripsi' => 'required|string',
+            'harga_barang' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:1',
+            'status_barang' => 'required|in:tersedia,habis,tidak tersedia',
+            'tanggal_garansi' => 'nullable|date',
+            'foto_barang.*' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        try {
+            // Simpan barang
+            $barang = Barang::create([
+                'id_pegawai' => auth()->user()->id_pegawai ?? null,
+                'nama_barang' => $request->nama_barang,
+                'kategori_barang' => $request->kategori_barang,
+                'deskripsi' => $request->deskripsi,
+                'harga_barang' => $request->harga_barang,
+                'stock' => $request->stock,
+                'status_barang' => $request->status_barang,
+                'tanggal_garansi' => $request->tanggal_garansi,
+                'created_at' => now(),
+            ]);
+
+            if ($request->hasFile('foto_barang')) {
+                $fotoInput = $request->file('foto_barang');
+
+                // Paksa array kalau single upload
+                $files = is_array($fotoInput) ? $fotoInput : [$fotoInput];
+
+                foreach ($files as $file) {
+                    $path = $file->store('foto_barang', 'public');
+                    FotoBarang::create([
+                        'id_barang' => $barang->id_barang,
+                        'foto_barang' => $path,
+                    ]);
+                }
+            }
+
+
+            // Buat relasi di detailpenitipan
+            DetailPenitipan::create([
+                'id_penitipan' => $id_penitipan,
+                'id_barang' => $barang->id_barang,
+            ]);
+            $barang->load('foto_barang');
+
+            return response()->json([
+                'message' => 'Barang berhasil ditambahkan ke penitipan.',
+                'barang' => $barang,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Gagal menyimpan barang.', 'error' => $e->getMessage()], 500);
+        }
     }
 }

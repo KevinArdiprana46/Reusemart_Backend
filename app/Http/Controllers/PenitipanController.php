@@ -11,6 +11,37 @@ use Illuminate\Support\Facades\Auth;
 
 class PenitipanController extends Controller
 {
+    public function showAllPenitipan()
+    {
+        $pegawai = auth()->user();
+
+        if (!$pegawai || $pegawai->id_jabatan !== 7) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $penitipan = Penitipan::with(['penitip', 'barang'])->get();
+        return response()->json($penitipan);
+    }
+
+    public function showDetailPenitipan($id)
+    {
+        $penitipan = Penitipan::with([
+            'penitip',
+            'barang.foto_barang'
+        ])->find($id);
+
+        if (!$penitipan) {
+            return response()->json([
+                'message' => 'Data penitipan tidak ditemukan.'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Detail penitipan ditemukan.',
+            'data' => $penitipan
+        ]);
+    }
+
     public function showBarangPenitip()
     {
         $penitip = Auth::user();
@@ -242,4 +273,35 @@ class PenitipanController extends Controller
         return response()->json($penitipan);
     }
 
+    public function storePenitipan(Request $request)
+    {
+        $request->validate([
+            'id_penitip' => 'required|exists:penitip,id_penitip',
+            'nama_qc' => 'required|string|max:255',
+        ]);
+
+        $pegawai = auth()->user();
+        if (!$pegawai || $pegawai->id_jabatan != 7) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $tanggalMasuk = now();
+        $tanggalAkhir = now()->addDays(30);
+        $batasPengambilan = $tanggalAkhir->copy()->addDays(7);
+
+        $penitipan = Penitipan::create([
+            'id_penitip' => $request->id_penitip,
+            'id_pegawai' => $pegawai->id_pegawai,
+            'tanggal_masuk' => $tanggalMasuk,
+            'tanggal_akhir' => $tanggalAkhir,
+            'batas_pengambilan' => $batasPengambilan,
+            'status_perpanjangan' => 'tidak diperpanjang',
+            'nama_qc' => $request->nama_qc,
+        ]);
+
+        return response()->json([
+            'message' => 'Penitipan berhasil dibuat.',
+            'data' => $penitipan,
+        ]);
+    }
 }

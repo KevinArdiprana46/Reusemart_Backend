@@ -41,11 +41,6 @@ class Penitip extends Authenticatable
         return $this->belongsTo(Role::class, 'id_role');
     }
 
-    public function barang()
-    {
-        return $this->hasMany(Barang::class, 'id_penitip', 'id_penitip');
-    }
-
     public function penitipan()
     {
         return $this->hasMany(Penitipan::class, 'id_penitip');

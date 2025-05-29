@@ -12,13 +12,11 @@ class Penitipan extends Model
 
     protected $fillable = [
         'id_penitip',
-        'id_barang',
-        'nama_qc',
+        'id_pegawai',
         'tanggal_masuk',
         'tanggal_akhir',
         'batas_pengambilan',
         'status_perpanjangan',
-        'saldo_penitip',
         'nama_qc',
     ];
 
@@ -31,26 +29,17 @@ class Penitipan extends Model
     // Relasi ke Barang
     public function barang()
     {
-        // Tambahkan ini sebagai kebalikan relasi many-to-many
         return $this->belongsToMany(Barang::class, 'detailpenitipan', 'id_penitipan', 'id_barang');
     }
 
 
-    public function detailPenitipan()
+    public function detailpenitipan()
     {
-        return $this->hasMany(DetailPenitipan::class, 'id_barang');
+        return $this->hasMany(DetailPenitipan::class, 'id_penitipan');
     }
 
-    public function foto_barang(){
-        return $this->hasMany(Fotobarang::class, 'id_foto');
+    public function pegawai()
+    {
+        return $this->belongsTo(Pegawai::class, 'id_pegawai');
     }
-
-    public function penitipan(){
-        return $this->hasMany(Penitipan::class, 'id_penitipan');
-    }
-    
-    // public function foto_barang(){
-    //     return $this->hasMany(foto_barang::class, 'id_foto');
-    // }
-
 }
