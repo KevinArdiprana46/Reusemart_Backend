@@ -9,10 +9,10 @@ use App\Models\Penitipan;
 use App\Models\Transaksi;
 use App\Models\Penitip;
 use Auth;
-use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
+use Log;
 
 
 class TransaksiController extends Controller
@@ -414,14 +414,18 @@ class TransaksiController extends Controller
                     $tanggalMasuk = Carbon::parse($p->tanggal_masuk);
                     $daysDiff = $tanggalMasuk->diffInDays($now);
 
+                    // 🔁 Perhitungan komisi berdasarkan status_perpanjangan
+                    $komisi = 0;
                     if (strtolower($p->status_perpanjangan) === 'tidak diperpanjang') {
                         $komisi = $daysDiff <= 7
                             ? 0.15 * $barang->harga_barang
                             : 0.20 * $barang->harga_barang;
                     } else {
-                        $komisi = 0.25 * $barang->harga_barang;
+                        // Perpanjangan hanya boleh 1x perpanjangan
+                        $komisi = 0.30 * $barang->harga_barang;
                     }
 
+                    // 💾 Simpan ke transaksi
                     $transaksi->komisi_reusemart = $komisi;
                     $transaksi->save();
 
@@ -439,6 +443,7 @@ class TransaksiController extends Controller
             'total_komisi_reusemart' => $totalKomisi
         ]);
     }
+
 
     public function hitungKomisiPenitip()
     {
@@ -599,8 +604,6 @@ class TransaksiController extends Controller
             $bolehDiproses = true;
         }
 
-
-        // Case 2: Transaksi sedang disiapkan & pengiriman oleh kurir reusemart
         if (
             $transaksi->status_transaksi === 'sedang disiapkan' &&
             strtolower($transaksi->jenis_pengiriman) === 'kurir reusemart'
@@ -619,10 +622,10 @@ class TransaksiController extends Controller
                 $barang = $p->barang ?? null;
                 if ($barang && strtolower($barang->status_barang) === 'terjual') {
                     $hari = Carbon::parse($p->tanggal_masuk)->diffInDays(Carbon::now());
-                    $komisi = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
+                    $komisiPersen = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
                         ? ($hari <= 7 ? 0.15 : 0.20)
-                        : 0.25;
-                    $nilai = $komisi * $barang->harga_barang;
+                        : 0.30; // ✅ diperpanjang = 30%
+                    $nilai = $komisiPersen * $barang->harga_barang;
                     $totalKomisi += $nilai;
                     \Log::info("💼 Komisi ReuseMart Rp{$nilai} dari barang ID {$barang->id_barang}");
                 }
@@ -639,15 +642,16 @@ class TransaksiController extends Controller
                 if ($barang && strtolower($barang->status_barang) === 'terjual') {
                     if (!$transaksi->tanggal_pelunasan)
                         continue;
+
                     $tanggalMasuk = Carbon::parse($p->tanggal_masuk);
                     $tanggalTerjual = Carbon::parse($transaksi->tanggal_pelunasan);
                     $selisihHari = $tanggalMasuk->diffInDays($tanggalTerjual);
 
-                    $komisiReusemart = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
+                    $komisiPersen = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
                         ? ($selisihHari <= 7 ? 0.15 : 0.20)
-                        : 0.25;
+                        : 0.30;
 
-                    $nilaiKomisi = $komisiReusemart * $barang->harga_barang;
+                    $nilaiKomisi = $komisiPersen * $barang->harga_barang;
                     $bonus = $selisihHari < 7 ? 0.1 * $nilaiKomisi : 0;
                     $komisiPenitip = $barang->harga_barang - $nilaiKomisi + $bonus;
 
@@ -667,10 +671,10 @@ class TransaksiController extends Controller
                 $barang = $p->barang ?? null;
                 if ($barang && strtolower($barang->status_barang) === 'terjual') {
                     $hari = Carbon::parse($p->tanggal_masuk)->diffInDays(Carbon::now());
-                    $komisiReusemart = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
+                    $komisiPersen = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
                         ? ($hari <= 7 ? 0.15 : 0.20)
-                        : 0.25;
-                    $komisi = $komisiReusemart * $barang->harga_barang;
+                        : 0.30;
+                    $komisi = $komisiPersen * $barang->harga_barang;
                     $penghasilan = $barang->harga_barang - $komisi;
                     $totalSaldo += $penghasilan;
                 }
@@ -733,19 +737,19 @@ class TransaksiController extends Controller
         ]);
     }
 
-    public function generateNotaPDF($id_transaksi)
-    {
-        $transaksi = Transaksi::with([
-            'pembeli.alamat',
-            'detailtransaksi.barang.penitipan',
-            'pegawai'
-        ])->findOrFail($id_transaksi);
+    // public function generateNotaPDF($id_transaksi)
+    // {
+    //     $transaksi = Transaksi::with([
+    //         'pembeli.alamat',
+    //         'detailtransaksi.barang.penitipan',
+    //         'pegawai'
+    //     ])->findOrFail($id_transaksi);
 
-        $data = $transaksi->toArray(); // konversi agar kompatibel di React PDF
+    //     $data = $transaksi->toArray();
 
-        $pdf = Pdf::loadView('nota.pdf', ['transaksi' => $data]);
-        return $pdf->download("Nota_{$transaksi->nomor_nota}.pdf");
-    }
+    //     $pdf = Pdf::loadView('nota.pdf', ['transaksi' => $data]);
+    //     return $pdf->download("Nota_{$transaksi->nomor_nota}.pdf");
+    // }
 
 
     public function semuaTransaksi()
@@ -758,7 +762,8 @@ class TransaksiController extends Controller
 
         $transaksi = Transaksi::with([
             'detailtransaksi.barang.penitipan',
-            'pembeli.alamat'
+            'pembeli.alamat',
+            'pegawai'
         ])->orderByDesc('created_at')->get();
 
 
