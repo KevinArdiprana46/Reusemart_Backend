@@ -52,7 +52,16 @@ class Barang extends Model
 
     public function penitipan()
     {
-        return $this->hasOne(Penitipan::class, 'id_barang');
+        // SEBELUM:
+        // return $this->hasOne(Penitipan::class, 'id_barang');
+
+        // SESUDAH (karena many-to-many melalui detail_penitipan)
+        return $this->belongsToMany(Penitipan::class, 'detailpenitipan', 'id_barang', 'id_penitipan');
+    }
+
+    public function detailPenitipan()
+    {
+        return $this->hasMany(DetailPenitipan::class, 'id_barang');
     }
 
     public function detailTransaksi()

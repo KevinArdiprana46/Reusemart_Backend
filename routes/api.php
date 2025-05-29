@@ -129,7 +129,7 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::put('/rating/{id}', [BarangController::class, 'beriRatingBarang']);
     Route::get('/hitung-rating/{id}', [BarangController::class, 'hitungRatingPenitip']);
     // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
-
+    Route::get('/detail-barang/{id}', [BarangController::class, 'getDetailBarang']);
 });
 
 //NonLogin

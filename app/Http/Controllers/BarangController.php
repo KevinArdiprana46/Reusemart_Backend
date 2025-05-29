@@ -314,4 +314,22 @@ class BarangController extends Controller
             'rating_penitip' => $penitip->rating_penitip
         ]);
     }
+
+    public function getDetailBarang($id)
+    {
+        $barang = Barang::with([
+            'foto_barang',
+            'penitip',
+            'detailpenitipan.penitipan'
+        ])->find($id);
+
+        if (!$barang) {
+            return response()->json(['message' => 'Barang tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'message' => 'Detail barang berhasil diambil',
+            'data' => $barang,
+        ]);
+    }
 }
