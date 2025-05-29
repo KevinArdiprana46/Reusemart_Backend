@@ -101,15 +101,16 @@ class BarangController extends Controller
         ]);
 
         // Update nama_qc di penitipan jika ada
-        if ($request->has('nama_qc')) {
-            $penitipan = $barang->penitipan; // relasi hasOne dari model Barang
+        if ($request->filled('nama_qc')) {
+            $detail = $barang->detailPenitipan; // relasi hasOne ke DetailPenitipan
 
-            if ($penitipan) {
-                $penitipan->update([
+            if ($detail && $detail->penitipan) {
+                $detail->penitipan->update([
                     'nama_qc' => $request->nama_qc
                 ]);
             }
         }
+
 
         // 🔥 Hapus foto lama jika ada
         if ($request->has('foto_hapus')) {
