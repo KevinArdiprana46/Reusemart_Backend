@@ -242,4 +242,44 @@ class PenitipanController extends Controller
         return response()->json($penitipan);
     }
 
+    public function laporanBarangHabis(Request $request)
+    {
+        $pegawai = auth()->user();
+
+        if (!$pegawai || $pegawai->id_role !== 5) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $today = Carbon::today();
+
+        $barangList = Barang::with(['penitipan.penitip'])
+            ->whereHas('penitipan', function ($query) use ($today) {
+                $query->where('tanggal_akhir', '<', $today);
+            })
+            ->get();
+
+        $result = [];
+
+        foreach ($barangList as $barang) {
+            foreach ($barang->penitipan as $penitipan) {
+                $result[] = [
+                    'id_barang' => 'K' .$barang->id_barang ?? '???',
+                    'nama_produk' => $barang->nama_barang,
+                    'id_penitip' => $penitipan->penitip->id_penitip ?? '-',
+                    'nama_penitip' => $penitipan->penitip->nama_lengkap ?? '-',
+                    'tanggal_masuk' => $penitipan->tanggal_masuk,
+                    'tanggal_akhir' => $penitipan->tanggal_akhir,
+                    'batas_ambil' => $penitipan->batas_pengambilan,
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $result,
+            'tanggal_cetak' => now()->toDateString(),
+        ]);
+    }
+
+
 }
