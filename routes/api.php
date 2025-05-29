@@ -153,6 +153,9 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
 // 📦 BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
+    Route::post('/', [BarangController::class, 'store']);
+    Route::post('/update/{id}', [BarangController::class, 'update']);
+    Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
     Route::get('/{id}', [BarangController::class, 'show']);
     Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);
@@ -164,7 +167,7 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/hitung-rating/{id}', [BarangController::class, 'hitungRatingPenitip']);
 
     // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
-
+    Route::get('/detail-barang/{id}', [BarangController::class, 'getDetailBarang']);
 });
 Route::get('/non/all', [BarangController::class, 'getAllBarangForPegawai']);
 

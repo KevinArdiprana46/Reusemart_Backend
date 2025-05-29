@@ -31,15 +31,26 @@ class Penitipan extends Model
     // Relasi ke Barang
     public function barang()
     {
-        return $this->belongsTo(Barang::class, 'id_barang');
+        // Tambahkan ini sebagai kebalikan relasi many-to-many
+        return $this->belongsToMany(Barang::class, 'detailpenitipan', 'id_penitipan', 'id_barang');
+    }
+
+
+    public function detailPenitipan()
+    {
+        return $this->hasMany(DetailPenitipan::class, 'id_barang');
     }
 
     public function foto_barang(){
-        return $this->hasMany(foto_barang::class, 'id_foto');
+        return $this->hasMany(Fotobarang::class, 'id_foto');
     }
 
     public function penitipan(){
         return $this->hasMany(Penitipan::class, 'id_penitipan');
     }
     
+    // public function foto_barang(){
+    //     return $this->hasMany(foto_barang::class, 'id_foto');
+    // }
+
 }
