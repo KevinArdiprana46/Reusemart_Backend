@@ -18,6 +18,7 @@ class Barang extends Model
         'deskripsi',
         'kategori_barang',
         'harga_barang',
+        'berat_barang',
         'status_barang',
         'stock',
         'rating_barang',

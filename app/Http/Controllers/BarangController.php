@@ -9,6 +9,7 @@ use App\Models\FotoBarang;
 use App\Models\Penitip;
 use App\Models\DetailPenitipan;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class BarangController extends Controller
 {
@@ -35,21 +36,20 @@ class BarangController extends Controller
             'kategori_barang' => 'required|string|max:255',
             'deskripsi' => 'required|string',
             'harga_barang' => 'required|numeric|min:0',
+            'berat_barang' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:1',
             'status_barang' => 'required|string|in:tersedia,habis,tidak tersedia',
             'tanggal_garansi' => 'nullable|date',
             'foto_barang.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        $pegawai = auth()->user(); // ⬅️ Ambil pegawai login
-
         $barang = Barang::create([
-            'id_penitip' => $request->id_penitip,
-            'id_pegawai' => $pegawai->id_pegawai, // ⬅️ Simpan otomatis
+            'id_pegawai' => $request->id_pegawai, // 🧑‍🌾 Hunter diset manual dari frontend
             'nama_barang' => $request->nama_barang,
             'kategori_barang' => $request->kategori_barang,
             'deskripsi' => $request->deskripsi,
             'harga_barang' => $request->harga_barang,
+            'berat_barang' => $request->berat_barang,
             'stock' => $request->stock,
             'status_barang' => $request->status_barang,
             'tanggal_garansi' => $request->tanggal_garansi,
@@ -77,22 +77,20 @@ class BarangController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'id_penitip' => 'required|exists:penitip,id_penitip',
             'nama_barang' => 'required|string|max:255',
             'kategori_barang' => 'required|string|max:255',
             'deskripsi' => 'required|string',
             'harga_barang' => 'required|numeric|min:0',
+            'berat_barang' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:1',
             'status_barang' => 'required|string|in:tersedia,habis,tidak tersedia',
             'tanggal_garansi' => 'nullable|date',
             'foto_barang.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'nama_qc' => 'nullable|string|max:255',
         ]);
 
         $barang = Barang::findOrFail($id);
 
         $barang->update([
-            'id_penitip' => $request->id_penitip,
             'nama_barang' => $request->nama_barang,
             'kategori_barang' => $request->kategori_barang,
             'deskripsi' => $request->deskripsi,
@@ -102,30 +100,16 @@ class BarangController extends Controller
             'tanggal_garansi' => $request->tanggal_garansi,
         ]);
 
-        // Update nama_qc di penitipan jika ada
-        if ($request->filled('nama_qc')) {
-            $detail = $barang->detailPenitipan; // relasi hasOne ke DetailPenitipan
-
-            if ($detail && $detail->penitipan) {
-                $detail->penitipan->update([
-                    'nama_qc' => $request->nama_qc
-                ]);
-            }
-        }
-
-
-        // 🔥 Hapus foto lama jika ada
         if ($request->has('foto_hapus')) {
             foreach ($request->foto_hapus as $idFoto) {
                 $foto = FotoBarang::find($idFoto);
                 if ($foto) {
-                    Storage::disk('public')->delete($foto->foto_barang); // hapus file dari storage
-                    $foto->delete(); // hapus dari database
+                    Storage::disk('public')->delete($foto->foto_barang);
+                    $foto->delete();
                 }
             }
         }
 
-        // Jika ada file foto baru, tambahkan
         if ($request->hasFile('foto_barang')) {
             foreach ($request->file('foto_barang') as $file) {
                 $path = $file->store('foto_barang', 'public');
@@ -224,7 +208,7 @@ class BarangController extends Controller
             return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
         }
 
-        $barang = Barang::with('foto_barang') // tambahkan eager loading relasi foto_barang
+        $barang = Barang::with('foto_barang', 'penitipan.penitip') // tambahkan eager loading relasi foto_barang
             ->where('status_barang', 'tersedia')
             ->get();
 
@@ -342,20 +326,22 @@ class BarangController extends Controller
             'kategori_barang' => 'required|string|max:255',
             'deskripsi' => 'required|string',
             'harga_barang' => 'required|numeric|min:0',
+            'berat_barang' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:1',
-            'status_barang' => 'required|in:tersedia,habis,tidak tersedia',
+            'status_barang' => 'required|string|in:tersedia,habis,tidak tersedia',
             'tanggal_garansi' => 'nullable|date',
-            'foto_barang.*' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'foto_barang.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         try {
             // Simpan barang
             $barang = Barang::create([
-                'id_pegawai' => auth()->user()->id_pegawai ?? null,
+                'id_pegawai' => $request->id_pegawai, // 🧑‍🌾 Hunter diset manual dari frontend
                 'nama_barang' => $request->nama_barang,
                 'kategori_barang' => $request->kategori_barang,
                 'deskripsi' => $request->deskripsi,
                 'harga_barang' => $request->harga_barang,
+                'berat_barang' => $request->berat_barang,
                 'stock' => $request->stock,
                 'status_barang' => $request->status_barang,
                 'tanggal_garansi' => $request->tanggal_garansi,
@@ -391,6 +377,7 @@ class BarangController extends Controller
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal menyimpan barang.', 'error' => $e->getMessage()], 500);
+            \Log::error("❌ Gagal store barang", ['exception' => $e]);
         }
     }
 }

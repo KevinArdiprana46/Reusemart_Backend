@@ -157,4 +157,14 @@ class PegawaiController extends Controller
         $kurir = Pegawai::where('id_jabatan', 2)->get();
         return response()->json(['kurir' => $kurir]);
     }
+
+    public function getHunter()
+    {
+        $hunters = Pegawai::where('id_jabatan', 5)->select('id_pegawai', 'nama_lengkap')->get();
+
+        return response()->json([
+            'message' => 'Daftar hunter berhasil diambil.',
+            'data' => $hunters,
+        ]);
+    }
 }

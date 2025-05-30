@@ -125,6 +125,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PegawaiController::class, 'index']);
     Route::get('/daftar', [PegawaiController::class, 'getDaftarPegawai']);
+    Route::get('/hunter', [PegawaiController::class, 'getHunter']);
     Route::post('/store', [PegawaiController::class, 'store']);
     Route::post('/update/{id}', [PegawaiController::class, 'update']);
     Route::get('/kurir', [PegawaiController::class, 'getListKurir']);
@@ -141,6 +142,8 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::post('/store', [PenitipanController::class, 'storePenitipanBarang']);
     Route::get('/show', [PenitipanController::class, 'index']);
 
+    Route::post('/barang/{id_penitipan}', [BarangController::class, 'storeBarangDalamPenitipan']);
+
     Route::get('/barang/kategori/{kategori}', [PenitipanController::class, 'getBarangByKategori'])->where('kategori', '.*');
     Route::get('/show/{id}', [PenitipanController::class, 'show']);
     Route::get('/search', [PenitipanController::class, 'searchBarangByNama']);
@@ -149,7 +152,6 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::post('/ambil-kembali/{id_barang}', [PenitipanController::class, 'konfirmasiPengambilanKembali']);
 
     Route::post('/full-store', [PenitipanController::class, 'storePenitipan']);
-    Route::post('/barang/{id_penitipan}', [BarangController::class, 'storeBarangDalamPenitipan']);
 });
 
 // 📦 BARANG
