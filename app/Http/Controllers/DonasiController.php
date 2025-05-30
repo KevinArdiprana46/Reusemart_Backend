@@ -126,6 +126,7 @@ class DonasiController extends Controller
         $request->validate([
             'id_barang' => 'required|exists:barang,id_barang',
             'tanggal_donasi' => 'required|date',
+            'nama_penerima' => 'required|string|max:255',
         ]);
 
         $donasi = Donasi::findOrFail($id);
@@ -150,7 +151,8 @@ class DonasiController extends Controller
         $donasi->update([
             'id_barang' => $barang->id_barang,
             'tanggal_donasi' => $request->tanggal_donasi,
-            'status_donasi' => 'dikirim',
+            'nama_penerima' => $request->nama_penerima,
+            'status_donasi' => 'disiapkan',
         ]);
 
         // Kurangi stok barang
@@ -158,6 +160,7 @@ class DonasiController extends Controller
         $barang->save();
 
         // Tambahkan poin ke penitip
+        $poinTambahan = 0;
         if ($barang->id_penitip) {
             $penitip = Penitip::find($barang->id_penitip);
             if ($penitip) {
@@ -171,7 +174,37 @@ class DonasiController extends Controller
             'message' => 'Donasi berhasil dikirim.',
             'data' => $donasi,
             'barang_tersisa' => $barang->stock,
-            'poin_diberikan' => $poinTambahan ?? 0,
+            'poin_diberikan' => $poinTambahan,
+        ]);
+    }
+
+
+    public function updateDonasi(Request $request, $id)
+    {
+        $request->validate([
+            'tanggal_donasi' => 'required|date',
+            'nama_penerima' => 'required|string|max:255',
+        ]);
+
+        $donasi = Donasi::find($id);
+
+        if (!$donasi) {
+            return response()->json(['message' => 'Donasi tidak ditemukan.'], 404);
+        }
+
+        if ($donasi->status_donasi !== 'disiapkan') {
+            return response()->json([
+                'message' => 'Donasi hanya dapat diubah jika status adalah "disiapkan".'
+            ], 403);
+        }
+
+        $donasi->tanggal_donasi = $request->tanggal_donasi;
+        $donasi->nama_penerima = $request->nama_penerima;
+        $donasi->save();
+
+        return response()->json([
+            'message' => 'Donasi berhasil diperbarui.',
+            'donasi' => $donasi
         ]);
     }
 }

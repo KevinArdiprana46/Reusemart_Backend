@@ -35,18 +35,14 @@ class LoginController extends Controller
             $role = 'penitip';
         } elseif ($user = Pegawai::where('email', $email)->first()) {
             $isPegawai = true;
-
-            switch ($user->id_role) {
-                case 5:
-                    $role = 'owner';
-                    break;
-                case 6:
-                    $role = 'admin';
-                    break;
-                case 1:
-                default:
-                    $role = 'pegawai';
-                    break;
+            if ($user->id_role == 5) {
+                $role = 'owner';
+            } elseif ($user->id_jabatan == 7) {
+                $role = 'gudang';
+            } elseif ($user->id_jabatan == 1) {
+                $role = 'admin';
+            } else {
+                $role = 'pegawai';
             }
         } else {
             Log::info("Login gagal: Email tidak ditemukan ($email)");
@@ -61,7 +57,7 @@ class LoginController extends Controller
             if ($user->password !== $password) {
                 return response()->json(['message' => 'Password salah.'], 401);
             }
-        } 
+        }
         // else {
         //     //gunakan Hash::check untuk user biasa
         //     if (!Hash::check($password, $user->password)) {

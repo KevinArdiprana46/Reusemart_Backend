@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use Auth;
 use Illuminate\Http\Request;
 use App\Models\Barang;
+use App\Models\FotoBarang;
+use App\Models\Penitip;
+use Illuminate\Support\Facades\Storage;
 
 class BarangController extends Controller
 {
@@ -15,7 +19,7 @@ class BarangController extends Controller
 
     public function show($id)
     {
-        $barang = Barang::find($id);
+        $barang = Barang::with('foto_barang')->find($id);
         if (!$barang) {
             return response()->json(['message' => 'Barang not found'], 404);
         }
@@ -24,44 +28,120 @@ class BarangController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'id_pegawai' => 'nullable|integer',
+        $request->validate([
+            'id_penitip' => 'required|exists:penitip,id_penitip',
             'nama_barang' => 'required|string|max:255',
+            'kategori_barang' => 'required|string|max:255',
             'deskripsi' => 'required|string',
-            'kategori_barang' => 'required|string',
-            'harga_barang' => 'required|numeric',
-            'status_barang' => 'required|string',
-            'stock' => 'required|integer',
+            'harga_barang' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:1',
+            'status_barang' => 'required|string|in:tersedia,habis,tidak tersedia',
             'tanggal_garansi' => 'nullable|date',
+            'foto_barang.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        $barang = Barang::create($validated);
+        $pegawai = auth()->user(); // ⬅️ Ambil pegawai login
 
-        return response()->json($barang, 201);
+        $barang = Barang::create([
+            'id_penitip' => $request->id_penitip,
+            'id_pegawai' => $pegawai->id_pegawai, // ⬅️ Simpan otomatis
+            'nama_barang' => $request->nama_barang,
+            'kategori_barang' => $request->kategori_barang,
+            'deskripsi' => $request->deskripsi,
+            'harga_barang' => $request->harga_barang,
+            'stock' => $request->stock,
+            'status_barang' => $request->status_barang,
+            'tanggal_garansi' => $request->tanggal_garansi,
+            'created_at' => now(),
+        ]);
+
+        if ($request->hasFile('foto_barang')) {
+            foreach ($request->file('foto_barang') as $file) {
+                $path = $file->store('foto_barang', 'public');
+
+                FotoBarang::create([
+                    'id_barang' => $barang->id_barang,
+                    'foto_barang' => $path,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Barang berhasil ditambahkan.',
+            'data' => $barang
+        ]);
     }
+
 
     public function update(Request $request, $id)
     {
-        $barang = Barang::find($id);
-        if (!$barang) {
-            return response()->json(['message' => 'Barang not found'], 404);
-        }
-
-        $validated = $request->validate([
-            'id_pegawai' => 'nullable|integer',
-            'nama_barang' => 'nullable|string|max:255',
-            'deskripsi' => 'nullable|string',
-            'kategori_barang' => 'nullable|string',
-            'harga_barang' => 'nullable|numeric',
-            'status_barang' => 'nullable|string',
-            'stock' => 'nullable|integer',
+        $request->validate([
+            'id_penitip' => 'required|exists:penitip,id_penitip',
+            'nama_barang' => 'required|string|max:255',
+            'kategori_barang' => 'required|string|max:255',
+            'deskripsi' => 'required|string',
+            'harga_barang' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:1',
+            'status_barang' => 'required|string|in:tersedia,habis,tidak tersedia',
             'tanggal_garansi' => 'nullable|date',
+            'foto_barang.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'nama_qc' => 'nullable|string|max:255',
         ]);
 
-        $barang->update($validated);
+        $barang = Barang::findOrFail($id);
 
-        return response()->json($barang);
+        $barang->update([
+            'id_penitip' => $request->id_penitip,
+            'nama_barang' => $request->nama_barang,
+            'kategori_barang' => $request->kategori_barang,
+            'deskripsi' => $request->deskripsi,
+            'harga_barang' => $request->harga_barang,
+            'stock' => $request->stock,
+            'status_barang' => $request->status_barang,
+            'tanggal_garansi' => $request->tanggal_garansi,
+        ]);
+
+        // Update nama_qc di penitipan jika ada
+        if ($request->filled('nama_qc')) {
+            $detail = $barang->detailPenitipan; // relasi hasOne ke DetailPenitipan
+
+            if ($detail && $detail->penitipan) {
+                $detail->penitipan->update([
+                    'nama_qc' => $request->nama_qc
+                ]);
+            }
+        }
+
+
+        // 🔥 Hapus foto lama jika ada
+        if ($request->has('foto_hapus')) {
+            foreach ($request->foto_hapus as $idFoto) {
+                $foto = FotoBarang::find($idFoto);
+                if ($foto) {
+                    Storage::disk('public')->delete($foto->foto_barang); // hapus file dari storage
+                    $foto->delete(); // hapus dari database
+                }
+            }
+        }
+
+        // Jika ada file foto baru, tambahkan
+        if ($request->hasFile('foto_barang')) {
+            foreach ($request->file('foto_barang') as $file) {
+                $path = $file->store('foto_barang', 'public');
+
+                FotoBarang::create([
+                    'id_barang' => $barang->id_barang,
+                    'foto_barang' => $path,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'message' => 'Barang berhasil diperbarui.',
+            'data' => $barang->load('foto_barang'),
+        ]);
     }
+
 
     public function destroy($id)
     {
@@ -159,7 +239,7 @@ class BarangController extends Controller
 
     public function getAllNonBarangForPegawai()
     {
-        $barang = Barang::all(); // Mengambil semua data barang tanpa relasi foto_barang
+        $barang = Barang::with('foto_barang')->get();
 
         return response()->json([
             'barang' => $barang,
@@ -167,5 +247,95 @@ class BarangController extends Controller
         ]);
     }
 
+    public function getBarangTerjual()
+    {
+        $barang = Barang::where('status_barang', 'terjual')
+            ->get();
 
+        return response()->json($barang);
+    }
+
+    public function uploadFotoBarang(Request $request, $id)
+    {
+        $request->validate([
+            'foto_barang' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        $imagePath = $request->file('foto_barang')->store('foto_barang', 'public');
+
+        $foto_barang = FotoBarang::create([
+            'id_barang' => $id,
+            'foto_barang' => $imagePath,
+        ]);
+
+        return response()->json([
+            'message' => 'Foto berhasil ditambahkan',
+            'image_url' => asset('storage/' . $imagePath),
+        ], 201);
+    }
+
+
+    public function beriRatingBarang(Request $request, $id)
+    {
+        $request->validate([
+            'rating_barang' => 'required|integer|min:1|max:5',
+        ]);
+
+        $barang = Barang::find($id);
+
+        if (!$barang) {
+            return response()->json(['message' => 'Barang tidak ditemukan'], 404);
+        }
+
+        // Karena barang cuma satu, langsung ganti rating-nya
+        $barang->rating_barang = $request->rating_barang;
+        $barang->save();
+
+        $this->hitungRatingPenitip($barang->id_penitip);
+
+        return response()->json([
+            'message' => 'Rating berhasil disimpan.',
+            'barang' => $barang
+        ]);
+    }
+
+    public function hitungRatingPenitip($id_penitip)
+    {
+        $rataRata = Barang::where('id_penitip', $id_penitip)
+            ->where('status_barang', 'terjual') // ✅ hanya barang terjual
+            ->whereNotNull('rating_barang')     // ✅ yang sudah dinilai
+            ->avg('rating_barang');
+
+        $penitip = Penitip::find($id_penitip);
+
+        if (!$penitip) {
+            return response()->json(['message' => 'Penitip tidak ditemukan'], 404);
+        }
+
+        $penitip->rating_penitip = $rataRata ? round($rataRata, 2) : 0;
+        $penitip->save();
+
+        return response()->json([
+            'message' => 'Rating penitip berhasil didapatkan.',
+            'rating_penitip' => $penitip->rating_penitip
+        ]);
+    }
+
+    public function getDetailBarang($id)
+    {
+        $barang = Barang::with([
+            'foto_barang',
+            'penitip',
+            'detailpenitipan.penitipan'
+        ])->find($id);
+
+        if (!$barang) {
+            return response()->json(['message' => 'Barang tidak ditemukan'], 404);
+        }
+
+        return response()->json([
+            'message' => 'Detail barang berhasil diambil',
+            'data' => $barang,
+        ]);
+    }
 }

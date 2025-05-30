@@ -15,6 +15,7 @@ use App\Http\Controllers\{
     PenitipanController,
     ResetPasswordController,
     TransaksiController,
+    LaporanController,
     UserController,
     DiskusiController,
     KeranjangController
@@ -47,6 +48,7 @@ Route::prefix('alamat')->middleware('auth:sanctum')->group(function () {
 // 👤 PENITIP
 Route::post('/penitip/register', [PenitipController::class, 'register']);
 Route::prefix('penitip')->middleware('auth:sanctum')->group(function () {
+    Route::get('/all', [PenitipController::class, 'getAllPenitip']);
     Route::get('/profile', [PenitipController::class, 'profile']);
     Route::post('/update', [PenitipController::class, 'update']);
     Route::get('/search', [PenitipController::class, 'search']);
@@ -69,6 +71,7 @@ Route::prefix('donasi')->middleware('auth:sanctum')->group(function () {
     Route::delete('/{id}', [DonasiController::class, 'destroy']);
     Route::get('/search', [DonasiController::class, 'search']);
     Route::post('/kirim/{id}', [DonasiController::class, 'kirimDonasi']);
+    Route::put('/update-donasi/{id}', [DonasiController::class, 'updateDonasi']);
 });
 Route::middleware('auth:sanctum')->get('/barang/donasi', [BarangController::class, 'getBarangDonasi']);
 
@@ -99,6 +102,31 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transaksi/verifikasi/{id}', [TransaksiController::class, 'verifikasiTransaksi']);
     Route::post('/transaksi/tolak/{id}', [TransaksiController::class, 'tolakTransaksi']);
 
+    Route::post('/transaksi/konfirmasi-ambil/{id_penitipan}', [TransaksiController::class, 'konfirmasiAmbil']);
+    Route::get('/gudang/transaksi', [TransaksiController::class, 'transaksiGudang']);
+    Route::post('/gudang/transaksi/jadwalkan-kurir/{id_transaksi}', [TransaksiController::class, 'jadwalkanPengirimanKurir']);
+    Route::post('/gudang/transaksi/jadwalkan-ambil-sendiri/{id_transaksi}', [TransaksiController::class, 'jadwalkanAmbilSendiri']);
+    Route::post('/gudang/transaksi/konfirmasi-diterima/{id_transaksi}', [TransaksiController::class, 'konfirmasiBarangDiterima']);
+    Route::post('/transaksi/hanguskan-otomatis', [TransaksiController::class, 'cekTransaksiHangus']);
+    Route::post('/gudang/transaksi/hitung-komisi-hunter/{id_transaksi}', [TransaksiController::class, 'hitungKomisiHunterByTransaksi']);
+    // Komisi
+    Route::get('/komisi/reusemart', [TransaksiController::class, 'hitungKomisiReusemart']);
+    Route::get('/komisi/penitip', [TransaksiController::class, 'hitungKomisiPenitip']);
+    // Saldo
+    Route::get('/saldo/penitip', [TransaksiController::class, 'tambahSaldoPenitip']);
+    // Poin
+    Route::get('/poin/pembeli', [TransaksiController::class, 'tambahPoinPembeli']);
+    // Proses final satu transaksi (opsional efisien)
+    Route::post('/transaksi/proses-final/{id}', [TransaksiController::class, 'prosesFinalTransaksi']);
+    Route::get('/nota/{id_transaksi}/pdf', [TransaksiController::class, 'generateNotaPDF']);
+    Route::get('/transaksi/semua', [TransaksiController::class, 'semuaTransaksi']);
+});
+
+//Laporan
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/laporan/kategori-barang', [LaporanController::class, 'laporanPenjualanKategori']);
+    Route::get('/laporan/barang-penitipan-habis', [LaporanController::class, 'barangPenitipanHabis']);
+    Route::get('/laporan/penjualan-bulanan', [LaporanController::class, 'laporanPenjualanBulanan']);
 });
 
 // 👷‍♂️ PEGAWAI
@@ -106,28 +134,54 @@ Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PegawaiController::class, 'index']);
     Route::get('/daftar', [PegawaiController::class, 'getDaftarPegawai']);
     Route::post('/store', [PegawaiController::class, 'store']);
+    Route::post('/update/{id}', [PegawaiController::class, 'update']);
+    Route::get('/kurir', [PegawaiController::class, 'getListKurir']);
     Route::get('/{id}', [PegawaiController::class, 'show']);
-    Route::put('/update/{id}', [PegawaiController::class, 'update']);
     Route::delete('/delete/{id}', [PegawaiController::class, 'destroy']);
+
 });
 Route::middleware('auth:sanctum')->post('/admin/reset-password/pegawai', [AdminController::class, 'resetPasswordPegawai']);
 
 // 📦 PENITIPAN
 Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::get('/barang', [PenitipanController::class, 'showBarangPenitip']);
+    Route::post('/store', [PenitipanController::class, 'storePenitipanBarang']);
+    Route::get('/show', [PenitipanController::class, 'index']);
+    Route:: get('/laporan/penitipan/habis', [PenitipanController::class, 'laporanBarangHabis']);
     Route::get('/barang/kategori/{kategori}', [PenitipanController::class, 'getBarangByKategori'])->where('kategori', '.*');
     Route::get('/show/{id}', [PenitipanController::class, 'show']);
+    Route::get('/search', [PenitipanController::class, 'searchBarangByNama']);
+    Route::post('/perpanjang/{id}', [PenitipanController::class, 'perpanjangPenitipan']);
+    Route::post('/gudang/penitipan/ambil/{id}', [PenitipanController::class, 'konfirmasiPengambilan']);
+    Route::post('/ambil-kembali/{id_barang}', [PenitipanController::class, 'konfirmasiPengambilanKembali']);
+
+
 });
 
 // 📦 BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
-    Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
+    Route::post('/', [BarangController::class, 'store']);
+    Route::post('/update/{id}', [BarangController::class, 'update']);
+    Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);
+    Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
     Route::get('/{id}', [BarangController::class, 'show']);
+    Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);
+    Route::get('/terjual', [BarangController::class, 'getBarangTerjual']);
+
+
     Route::get('/', [BarangController::class, 'index']);
+    Route::put('/rating/{id}', [BarangController::class, 'beriRatingBarang']);
+    Route::get('/hitung-rating/{id}', [BarangController::class, 'hitungRatingPenitip']);
+
+    // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
+    Route::get('/detail-barang/{id}', [BarangController::class, 'getDetailBarang']);
 });
+Route::get('/non/all', [BarangController::class, 'getAllBarangForPegawai']);
 
 //NonLogin
+Route::get('barang/{id}', [BarangController::class, 'show']);
+Route::get('/barang/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
 Route::get('non/all', [BarangController::class, 'getAllNonBarangForPegawai']);
 Route::get('non/kategori/{kategori}', [BarangController::class, 'getNonByKategori'])->where('kategori', '.*');
 Route::get('non/{id}', [BarangController::class, 'showNon']);

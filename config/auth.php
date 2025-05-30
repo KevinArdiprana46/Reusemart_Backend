@@ -70,6 +70,11 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Pembeli::class,
         ],
+        'pegawai'=>[
+            'driver' => 'eloquent',
+            'model' => App\Models\Pegawai::class,
+        ],
+        
         'organisasis' => [
             'driver' => 'eloquent',
             'model' => App\Models\Organisasi::class,
@@ -78,13 +83,7 @@ return [
             'driver' => 'eloquent',
             'model' => App\Models\Penitip::class,
         ],
-        'pegawais' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\Pegawai::class,
-        ],
     ],
-
-
     /*
     |--------------------------------------------------------------------------
     | Resetting Passwords

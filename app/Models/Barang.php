@@ -13,16 +13,19 @@ class Barang extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'id_penitip',
+        'id_pegawai',
         'nama_barang',
         'deskripsi',
         'kategori_barang',
         'harga_barang',
         'status_barang',
         'stock',
-        'tanggal_garansi'
+        'rating_barang',
+        'tanggal_garansi',
+        'created_at'
     ];
 
-    // Relasi dengan Pegawai (misalnya)
     public function pegawai()
     {
         return $this->belongsTo(Pegawai::class, 'id_pegawai');
@@ -46,10 +49,19 @@ class Barang extends Model
 
 
 
-    // public function penitipan()
-    // {
-    //     return $this->belongsTo(Penitipan::class, 'id_barang');
-    // }
+    public function penitipan()
+    {
+        // SEBELUM:
+        // return $this->hasOne(Penitipan::class, 'id_barang');
+
+        // SESUDAH (karena many-to-many melalui detail_penitipan)
+        return $this->belongsToMany(Penitipan::class, 'detailpenitipan', 'id_barang', 'id_penitipan');
+    }
+
+    public function detailPenitipan()
+    {
+        return $this->hasOne(DetailPenitipan::class, 'id_barang');
+    }
 
     public function detailTransaksi()
     {
@@ -60,4 +72,5 @@ class Barang extends Model
     {
         return $this->hasMany(FotoBarang::class, 'id_barang');
     }
+
 }

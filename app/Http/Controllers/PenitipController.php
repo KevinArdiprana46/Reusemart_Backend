@@ -208,4 +208,27 @@ class PenitipController extends Controller
 
         return response()->json($barang);
     }
+
+
+    public function barangPenitip(){
+        $penitip = auth()->user();
+
+    if (!$penitip || !$penitip instanceof Penitip) {
+        return response()->json(['message' => 'Unauthorized'], 401);
+    }
+
+    $barang = Barang::with('foto_barang')
+        ->where('id_penitip', $penitip->id_penitip)
+        ->get();
+
+    return response()->json($barang);
+}
+    public function getAllPenitip()
+    {
+        $penitip = Penitip::select('id_penitip', 'nama_lengkap')->get();
+        return response()->json([
+            'message' => 'Daftar penitip berhasil diambil.',
+            'data' => $penitip
+        ]);
+    }
 }

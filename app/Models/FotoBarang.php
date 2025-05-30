@@ -7,14 +7,21 @@ use Illuminate\Database\Eloquent\Model;
 
 class FotoBarang extends Model
 {
-    protected $table = 'foto_barang';
-    public $primaryKey = 'id_foto';
+  protected $table = 'foto_barang';
+  public $primaryKey = 'id_foto';
 
-    public $timestamps = false;
+  public $incrementing = true;
+  public $timestamps = false;
 
-    use HasFactory;
+  use HasFactory;
 
-    protected $fillable = [
-      'foto_barang',  
-    ];
+  protected $fillable = [
+    'id_barang',
+    'foto_barang',
+  ];
+
+  public function barang()
+  {
+    return $this->belongsTo(Barang::class, 'id_barang');
+  }
 }
