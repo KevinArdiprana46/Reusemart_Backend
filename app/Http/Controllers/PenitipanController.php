@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\DetailPenitipan;
+use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use App\Models\Penitipan;
 use Carbon\Carbon;
@@ -19,7 +21,7 @@ class PenitipanController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        $penitipanList = Penitipan::with(['barang.foto_barang'])
+        $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
             ->where('id_penitip', $penitip->id_penitip)
             ->get();
 
@@ -34,7 +36,7 @@ class PenitipanController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        $penitipanList = Penitipan::with(['barang.foto_barang'])
+        $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
             ->where('id_penitip', $penitip->id_penitip)
             ->whereHas('barang', function ($query) use ($kategori) {
                 $query->whereRaw('LOWER(TRIM(kategori_barang)) = ?', [strtolower(trim($kategori))]);
@@ -53,15 +55,20 @@ class PenitipanController extends Controller
 
     public function show($id)
     {
-        $penitipan = Penitipan::with(['barang.foto_barang'])->find($id);
+        $penitipan = Penitipan::with(['detailpenitipan.barang.foto_barang'])->find($id);
 
         if (!$penitipan) {
             return response()->json(['message' => 'Penitipan not found'], 404);
         }
 
-        $barang = $penitipan->barang;
+        // Ambil barang pertama saja untuk ditampilkan
+        $firstBarang = $penitipan->detailpenitipan->first()->barang ?? null;
 
-        $idPenitip = $barang->id_penitip ?? null;
+        if (!$firstBarang) {
+            return response()->json(['message' => 'Barang tidak ditemukan.'], 404);
+        }
+
+        $idPenitip = $penitipan->id_penitip;
 
         $transaksiTerakhir = \App\Models\Transaksi::where('id_penitip', $idPenitip)
             ->orderByDesc('created_at')
@@ -69,10 +76,12 @@ class PenitipanController extends Controller
 
         return response()->json([
             'penitipan' => $penitipan,
+            'barang' => $firstBarang,
             'status_transaksi' => $transaksiTerakhir->status_transaksi ?? null,
-            'status_barang' => $barang->status_barang ?? null,
+            'status_barang' => $firstBarang->status_barang ?? null,
         ]);
     }
+
 
 
     public function searchBarangByNama(Request $request)
@@ -89,7 +98,7 @@ class PenitipanController extends Controller
             return response()->json(['message' => 'Parameter pencarian (q) wajib diisi.'], 400);
         }
 
-        $penitipanList = Penitipan::with(['barang.foto_barang'])
+        $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
             ->where('id_penitip', $penitip->id_penitip)
             ->whereHas('barang', function ($query) use ($keyword) {
                 $query->where(function ($subQuery) use ($keyword) {
@@ -140,6 +149,9 @@ class PenitipanController extends Controller
         ]);
     }
 
+    use Illuminate\Support\Facades\DB;
+    use Carbon\Carbon;
+
     public function konfirmasiPengambilan($id)
     {
         $pegawai = auth()->user();
@@ -148,20 +160,37 @@ class PenitipanController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $penitipan = Penitipan::find($id);
+        $penitipan = Penitipan::with('detailpenitipan')->find($id);
 
         if (!$penitipan) {
             return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
         }
-        $penitipan->status_perpanjangan = 'diambil';
-        $penitipan->batas_pengambilan = Carbon::now();
-        $penitipan->save();
+
+        // Ambil semua ID barang dari detailpenitipan
+        $idBarangList = $penitipan->detailpenitipan->pluck('id_barang');
+
+        // Cari transaksi yang terkait dengan barang-barang tersebut
+        $transaksi = \App\Models\Transaksi::whereIn('id_barang', $idBarangList)->latest()->first();
+
+        if (!$transaksi) {
+            return response()->json(['message' => 'Transaksi untuk barang ini tidak ditemukan.'], 404);
+        }
+
+        if ($transaksi->status_transaksi === 'selesai') {
+            return response()->json(['message' => 'Transaksi sudah selesai.'], 400);
+        }
+
+        $transaksi->status_transaksi = 'selesai';
+        $transaksi->tanggal_diterima = Carbon::now(); // opsional, jika kamu punya kolom ini
+        $transaksi->save();
 
         return response()->json([
-            'message' => 'Barang berhasil dicatat sebagai diambil kembali.',
-            'data' => $penitipan,
+            'message' => 'Transaksi berhasil dikonfirmasi selesai.',
+            'data' => $transaksi,
         ]);
     }
+
+
 
 
 
@@ -210,7 +239,13 @@ class PenitipanController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $penitipan = Penitipan::where('id_barang', $id_barang)->first();
+        $detail = DetailPenitipan::with('penitipan.penitip')->where('id_barang', $id_barang)->first();
+
+        if (!$detail) {
+            return response()->json(['message' => 'Detail penitipan untuk barang ini tidak ditemukan.'], 404);
+        }
+
+        $penitipan = $detail->penitipan;
 
         if (!$penitipan) {
             return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
@@ -263,9 +298,9 @@ class PenitipanController extends Controller
         foreach ($barangList as $barang) {
             foreach ($barang->penitipan as $penitipan) {
                 $result[] = [
-                    'id_barang' => 'K' .$barang->id_barang ?? '???',
+                    'id_barang' => 'K' . $barang->id_barang ?? '???',
                     'nama_produk' => $barang->nama_barang,
-                    'id_penitip' => $penitipan->penitip->id_penitip ?? '-',
+                    'id_penitip' => 'T' . $penitipan->penitip->id_penitip ?? '-',
                     'nama_penitip' => $penitipan->penitip->nama_lengkap ?? '-',
                     'tanggal_masuk' => $penitipan->tanggal_masuk,
                     'tanggal_akhir' => $penitipan->tanggal_akhir,
