@@ -16,7 +16,7 @@ class TransaksiService
             ->where('created_at', '<', now()->subMinutes(1))
             ->get();
 
-            Log::info("Ditemukan " . $transaksis->count() . " transaksi untuk dibatalkan.");
+            \Log::info("Ditemukan " . $transaksis->count() . " transaksi untuk dibatalkan.");
 
 
         foreach ($transaksis as $trx) {
@@ -42,7 +42,7 @@ class TransaksiService
             $trx->status_transaksi = 'batal';
             $trx->save();
 
-            Log::info("⏳ Transaksi dibatalkan otomatis: {$trx->id_transaksi}");
+            \Log::info("⏳ Transaksi dibatalkan otomatis: {$trx->id_transaksi}");
         }
     }
 }
