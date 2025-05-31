@@ -13,11 +13,11 @@ class Penitipan extends Model
     protected $fillable = [
         'id_penitip',
         'id_pegawai',
+        'id_qc',
         'tanggal_masuk',
         'tanggal_akhir',
         'batas_pengambilan',
         'status_perpanjangan',
-        'nama_qc',
     ];
 
     // Relasi ke Penitip
@@ -41,5 +41,10 @@ class Penitipan extends Model
     public function pegawai()
     {
         return $this->belongsTo(Pegawai::class, 'id_pegawai');
+    }
+
+    public function pegawaiQc()
+    {
+        return $this->belongsTo(Pegawai::class, 'id_qc');
     }
 }
