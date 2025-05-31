@@ -16,7 +16,7 @@ use App\Models\Penitip;
 use Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
-use Log;
+use Illuminate\Support\Facades\Log;
 
 
 class TransaksiController extends Controller
@@ -212,6 +212,35 @@ class TransaksiController extends Controller
 
         return $yearMonth . '.' . $urut;
     }
+
+    public function batalkanOtomatis()
+    {
+        $transaksis = Transaksi::with('detailtransaksi.barang', 'pembeli')
+            ->where('status_transaksi', 'belum bayar')
+            ->where('created_at', '<', now()->subMinutes(1))
+            ->get();
+
+        foreach ($transaksis as $trx) {
+            if ($trx->pembeli) {
+                $trx->pembeli->poin_sosial += $trx->poin_digunakan ?? 0;
+                $trx->pembeli->save();
+            }
+
+            foreach ($trx->detailtransaksi as $detail) {
+                if ($detail->barang) {
+                    $detail->barang->stock += $detail->jumlah;
+                    $detail->barang->status_barang = 'tersedia';
+                    $detail->barang->save();
+                }
+            }
+
+            $trx->status_transaksi = 'batal';
+            $trx->save();
+        }
+
+        return response()->json(['success' => true, 'jumlah_dibatalkan' => $transaksis->count()]);
+    }
+
 
 
     public function checkout(Request $request)
@@ -482,7 +511,7 @@ class TransaksiController extends Controller
         $transaksi->save();
 
         // Log (opsional)
-        \Log::info("✅ Transaksi {$transaksi->id_transaksi} dikonfirmasi selesai oleh pegawai gudang.");
+        Log::info("✅ Transaksi {$transaksi->id_transaksi} dikonfirmasi selesai oleh pegawai gudang.");
 
         // Kirim email ke pembeli
         if ($transaksi->pembeli && $transaksi->pembeli->email) {
@@ -628,7 +657,7 @@ class TransaksiController extends Controller
                     $totalKomisi += $komisi;
                     $jumlahDihitung++;
 
-                    \Log::info("💼 Komisi ReuseMart Rp{$komisi} dihitung dari barang ID {$barang->id_barang}");
+                    Log::info("💼 Komisi ReuseMart Rp{$komisi} dihitung dari barang ID {$barang->id_barang}");
                 }
             }
         }
@@ -686,7 +715,7 @@ class TransaksiController extends Controller
                 $totalKomisi += $komisiPenitip;
                 $jumlahDiproses++;
 
-                \Log::info("✅ Komisi penitip Rp{$komisiPenitip} + bonus Rp{$bonus} diberikan ke {$penitip->nama_lengkap} dari barang ID {$barang->id_barang}");
+                Log::info("✅ Komisi penitip Rp{$komisiPenitip} + bonus Rp{$bonus} diberikan ke {$penitip->nama_lengkap} dari barang ID {$barang->id_barang}");
             }
         }
 
@@ -771,7 +800,7 @@ class TransaksiController extends Controller
                 $jumlahDiproses++;
                 $totalPoinDiberikan += $poin_sosial;
 
-                \Log::info("🎁 {$poin_sosial} poin ditambahkan ke {$pembeli->nama_lengkap} (ID: {$pembeli->id_pembeli})");
+                Log::info("🎁 {$poin_sosial} poin ditambahkan ke {$pembeli->nama_lengkap} (ID: {$pembeli->id_pembeli})");
             }
         }
 
@@ -823,7 +852,7 @@ class TransaksiController extends Controller
                             : 0.30;
                         $nilai = $komisiPersen * $barang->harga_barang;
                         $totalKomisi += $nilai;
-                        \Log::info("💼 Komisi ReuseMart Rp{$nilai} dari barang ID {$barang->id_barang}");
+                        Log::info("💼 Komisi ReuseMart Rp{$nilai} dari barang ID {$barang->id_barang}");
                     }
                 }
             }
@@ -855,7 +884,7 @@ class TransaksiController extends Controller
                         $penitip->komisi += $komisiPenitip;
                         $penitip->bonus += $bonus;
 
-                        \Log::info("✅ Komisi penitip Rp{$komisiPenitip} + bonus Rp{$bonus} diberikan ke {$penitip->nama_lengkap}");
+                        Log::info("✅ Komisi penitip Rp{$komisiPenitip} + bonus Rp{$bonus} diberikan ke {$penitip->nama_lengkap}");
                     }
                 }
             }
@@ -889,7 +918,7 @@ class TransaksiController extends Controller
             if ($poin > 0) {
                 $pembeli->poin_sosial += $poin;
                 $pembeli->save();
-                \Log::info("🎁 Poin +{$poin} ditambahkan ke {$pembeli->nama_lengkap}");
+                Log::info("🎁 Poin +{$poin} ditambahkan ke {$pembeli->nama_lengkap}");
             }
         }
 
@@ -903,7 +932,7 @@ class TransaksiController extends Controller
                         $komisi = 0.05 * $barang->harga_barang;
                         $pegawai->komisi_hunter += $komisi;
                         $totalKomisiHunter += $komisi;
-                        \Log::info("💸 Komisi Hunter Rp{$komisi} untuk {$pegawai->nama_lengkap} dari barang ID {$barang->id_barang}");
+                        Log::info("💸 Komisi Hunter Rp{$komisi} untuk {$pegawai->nama_lengkap} dari barang ID {$barang->id_barang}");
                     }
                 }
             }
