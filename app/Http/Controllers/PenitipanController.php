@@ -9,7 +9,6 @@ use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use App\Models\Penitipan;
 use App\Models\Barang;
-use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\Auth;
 

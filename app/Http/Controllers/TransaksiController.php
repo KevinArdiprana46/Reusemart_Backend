@@ -384,7 +384,7 @@ class TransaksiController extends Controller
             'pembeli',
             'detailtransaksi.barang.foto_barang'
         ])
-            ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
+            ->whereIn('status_transaksi', ['disiapkan', 'dikirim'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -546,7 +546,7 @@ class TransaksiController extends Controller
     {
         $now = Carbon::now();
         $expiredTransaksi = Transaksi::with('penitip.penitipan')
-            ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
+            ->whereIn('status_transaksi', ['disiapkan', 'dikirim'])
             ->whereDate('tanggal_pengambilan', '<', $now->copy()->subDays(2)->toDateString())
             ->get();
 
@@ -830,7 +830,7 @@ class TransaksiController extends Controller
         }
 
         if (
-            $transaksi->status_transaksi === 'sedang disiapkan' &&
+            $transaksi->status_transaksi === 'disiapkan' &&
             strtolower($transaksi->jenis_pengiriman) === 'kurir reusemart'
         ) {
             $bolehDiproses = true;

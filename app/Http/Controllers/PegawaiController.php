@@ -136,7 +136,7 @@ class PegawaiController extends Controller
         }
 
         $transaksi = Transaksi::with(['pembeli', 'barang'])
-            ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
+            ->whereIn('status_transaksi', ['disiapkan', 'dikirim'])
             ->orderBy('created_at', 'desc')
             ->get();
 
