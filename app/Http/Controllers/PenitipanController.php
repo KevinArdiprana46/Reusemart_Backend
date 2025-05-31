@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Penitipan;
 use Carbon\Carbon;
 use App\Models\Barang;
+use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -148,9 +149,6 @@ class PenitipanController extends Controller
             'penitipan' => $penitipan
         ]);
     }
-
-    use Illuminate\Support\Facades\DB;
-    use Carbon\Carbon;
 
     public function konfirmasiPengambilan($id)
     {

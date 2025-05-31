@@ -213,6 +213,35 @@ class TransaksiController extends Controller
         return $yearMonth . '.' . $urut;
     }
 
+    public function batalkanOtomatis()
+    {
+        $transaksis = Transaksi::with('detailtransaksi.barang', 'pembeli')
+            ->where('status_transaksi', 'belum bayar')
+            ->where('created_at', '<', now()->subMinutes(1))
+            ->get();
+
+        foreach ($transaksis as $trx) {
+            if ($trx->pembeli) {
+                $trx->pembeli->poin_sosial += $trx->poin_digunakan ?? 0;
+                $trx->pembeli->save();
+            }
+
+            foreach ($trx->detailtransaksi as $detail) {
+                if ($detail->barang) {
+                    $detail->barang->stock += $detail->jumlah;
+                    $detail->barang->status_barang = 'tersedia';
+                    $detail->barang->save();
+                }
+            }
+
+            $trx->status_transaksi = 'batal';
+            $trx->save();
+        }
+
+        return response()->json(['success' => true, 'jumlah_dibatalkan' => $transaksis->count()]);
+    }
+
+
 
     public function checkout(Request $request)
     {
@@ -229,15 +258,6 @@ class TransaksiController extends Controller
             ->whereIn('id', $request->keranjang_ids)
             ->where('id_pembeli', $pembeli->id_pembeli)
             ->get();
-
-        $keranjangs = Keranjang::with('barang')
-            ->whereIn('id', $request->keranjang_ids)
-            ->where('id_pembeli', $pembeli->id_pembeli)
-            ->get();
-
-        Log::info('Pembeli ID:', [$pembeli->id_pembeli]);
-        Log::info('Keranjang hasil query:', $keranjangs->toArray());
-
 
         if ($keranjangs->isEmpty()) {
             return response()->json(['message' => 'Keranjang tidak valid.'], 400);
@@ -270,10 +290,6 @@ class TransaksiController extends Controller
 
         // Tambahkan detail transaksi
         foreach ($keranjangs as $item) {
-            if (!$item->barang) {
-                Log::error("❌ Barang tidak ditemukan untuk keranjang ID: {$item->id}");
-                continue;
-            }
             DetailTransaksi::create([
                 'id_transaksi' => $transaksi->id_transaksi,
                 'id_barang' => $item->barang->id_barang,
