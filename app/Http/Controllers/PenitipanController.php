@@ -27,7 +27,8 @@ class PenitipanController extends Controller
     {
         $penitipan = Penitipan::with([
             'penitip',
-            'barang.foto_barang'
+            'barang.foto_barang',
+            'pegawaiqc'
         ])->find($id);
 
         if (!$penitipan) {
@@ -193,24 +194,12 @@ class PenitipanController extends Controller
             'data' => $penitipan,
         ]);
     }
-
-
-
-
-
-
-
-    //     return response()->json([
-    //         'penitipan' => $penitipan
-    //     ]);
-    // }
-
     public function storePenitipanBarang(Request $request)
     {
         $request->validate([
             'id_penitip' => 'required|exists:penitip,id_penitip',
             'id_barang' => 'required|exists:barang,id_barang',
-            'nama_qc' => 'required|string|max:255',
+            'id_qc' => 'required|exists:pegawai,id_pegawai',
         ]);
 
         $tanggalMasuk = Carbon::now();
@@ -220,7 +209,7 @@ class PenitipanController extends Controller
         $penitipan = Penitipan::create([
             'id_penitip' => $request->id_penitip,
             'id_barang' => $request->id_barang,
-            'nama_qc' => $request->nama_qc,
+            'id_qc' => $request->id_qc,
             'tanggal_masuk' => $tanggalMasuk->toDateString(),
             'tanggal_akhir' => $tanggalAkhir->toDateString(),
             'batas_pengambilan' => $batasPengambilan->toDateString(),
@@ -232,6 +221,7 @@ class PenitipanController extends Controller
             'data' => $penitipan
         ]);
     }
+
 
     public function konfirmasiPengambilanKembali($id_barang)
     {
@@ -277,7 +267,7 @@ class PenitipanController extends Controller
     {
         $request->validate([
             'id_penitip' => 'required|exists:penitip,id_penitip',
-            'nama_qc' => 'required|string|max:255',
+            'id_qc' => 'required|exists:pegawai,id_pegawai',
         ]);
 
         $pegawai = auth()->user();
@@ -292,11 +282,11 @@ class PenitipanController extends Controller
         $penitipan = Penitipan::create([
             'id_penitip' => $request->id_penitip,
             'id_pegawai' => $pegawai->id_pegawai,
+            'id_qc' => $request->id_qc,
             'tanggal_masuk' => $tanggalMasuk,
             'tanggal_akhir' => $tanggalAkhir,
             'batas_pengambilan' => $batasPengambilan,
             'status_perpanjangan' => 'tidak diperpanjang',
-            'nama_qc' => $request->nama_qc,
         ]);
 
         return response()->json([

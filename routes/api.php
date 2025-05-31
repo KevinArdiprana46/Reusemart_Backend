@@ -126,6 +126,7 @@ Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PegawaiController::class, 'index']);
     Route::get('/daftar', [PegawaiController::class, 'getDaftarPegawai']);
     Route::get('/hunter', [PegawaiController::class, 'getHunter']);
+    Route::get('/qc', [PegawaiController::class, 'getQc']);
     Route::post('/store', [PegawaiController::class, 'store']);
     Route::post('/update/{id}', [PegawaiController::class, 'update']);
     Route::get('/kurir', [PegawaiController::class, 'getListKurir']);

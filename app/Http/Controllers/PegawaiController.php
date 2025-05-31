@@ -167,4 +167,20 @@ class PegawaiController extends Controller
             'data' => $hunters,
         ]);
     }
+
+    public function getQc()
+    {
+        $pegawai = auth()->user();
+
+        if (!$pegawai || !in_array($pegawai->id_jabatan, [1, 7])) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $qcList = Pegawai::where('id_jabatan', 8)->get();
+
+        return response()->json([
+            'message' => 'Daftar QC berhasil diambil.',
+            'data' => $qcList
+        ]);
+    }
 }

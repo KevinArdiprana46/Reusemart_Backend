@@ -43,7 +43,7 @@ class Penitipan extends Model
         return $this->belongsTo(Pegawai::class, 'id_pegawai');
     }
 
-    public function pegawaiQc()
+    public function pegawaiqc()
     {
         return $this->belongsTo(Pegawai::class, 'id_qc');
     }
