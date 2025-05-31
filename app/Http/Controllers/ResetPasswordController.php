@@ -20,8 +20,8 @@ class ResetPasswordController extends Controller
             $broker = 'pembelis';
         } elseif ($user = \App\Models\Organisasi::where('email', $email)->first()) {
             $broker = 'organisasis';
-        // } elseif ($user = \App\Models\Penitip::where('email', $email)->first()) {
-        //     $broker = 'penitips';
+        } elseif ($user = \App\Models\Penitip::where('email', $email)->first()) {
+            $broker = 'penitips';
         } else {
             return response()->json(['message' => 'Email tidak ditemukan.'], 404);
         }
@@ -47,8 +47,8 @@ class ResetPasswordController extends Controller
             $broker = 'pembelis';
         } elseif ($user = \App\Models\Organisasi::where('email', $email)->first()) {
             $broker = 'organisasis';
-        // } elseif ($user = \App\Models\Penitip::where('email', $email)->first()) {
-        //     $broker = 'penitips';
+        } elseif ($user = \App\Models\Penitip::where('email', $email)->first()) {
+            $broker = 'penitips';
         } else {
             return response()->json(['message' => 'Email tidak ditemukan.'], 404);
         }

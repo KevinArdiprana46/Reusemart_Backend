@@ -11,6 +11,15 @@ use Illuminate\Support\Facades\Validator;
 
 class PenitipController extends Controller
 {
+    public function index()
+    {
+        $penitip = Penitip::all();
+
+        return response()->json([
+            'message' => 'Daftar semua penitip',
+            'data' => $penitip
+        ]);
+    }
     // ✅ Register Penitip
     public function register(Request $request)
     {

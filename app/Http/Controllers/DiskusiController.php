@@ -30,12 +30,20 @@ class DiskusiController extends Controller
         $request->validate([
             'id_barang' => 'required|exists:barang,id_barang',
             'pesan_diskusi' => 'required|string',
+            'created_at'
         ]);
 
         $role = $request->header('Role'); // Ambil role dari header
         $user = auth()->user();
 
-        $diskusi = new Diskusi();
+        $diskusi = Diskusi::create([
+            'id_barang' => $request->id_barang,
+            'id_pembeli' => $request->id_pembeli,
+            'id_pegawai' => $request->id_pegawai,
+            'pesan_diskusi' => $request->pesan_diskusi,
+            'is_read' => false,
+        ]);
+
         $diskusi->id_barang = $request->id_barang;
         $diskusi->pesan_diskusi = $request->pesan_diskusi;
 
@@ -55,6 +63,16 @@ class DiskusiController extends Controller
 
         return response()->json(['message' => 'Pesan berhasil dikirim!', 'data' => $diskusi]);
     }
+
+    public function tandaiDiskusiSudahDibaca($id_barang)
+    {
+        Diskusi::where('id_barang', $id_barang)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        return response()->json(['message' => 'Diskusi ditandai sudah dibaca']);
+    }
+
 
 }
 

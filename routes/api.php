@@ -17,7 +17,8 @@ use App\Http\Controllers\{
     TransaksiController,
     LaporanController,
     UserController,
-    DiskusiController
+    DiskusiController,
+    KeranjangController
 };
 
 // 🔐 AUTH / REGISTER / LOGIN
@@ -37,6 +38,7 @@ Route::prefix('pembeli')->middleware('auth:sanctum')->group(function () {
 // 🏠 ALAMAT
 Route::prefix('alamat')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [AlamatController::class, 'index']);
+    Route::post('/set-utama/{id}', [AlamatController::class, 'setUtama']);
     Route::post('/store', [AlamatController::class, 'store']);
     Route::get('/show/user', [AlamatController::class, 'show']);
     Route::put('/update/{id}', [AlamatController::class, 'update']);
@@ -94,6 +96,12 @@ Route::prefix('diskusi')->middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/riwayat-pembelian', [TransaksiController::class, 'riwayatPembelian']);
     Route::get('/riwayat-penjualan', [TransaksiController::class, 'riwayatPenjualan']);
+    Route::post('/checkout', [TransaksiController::class, 'checkout']);
+    Route::post('/transaksi/upload-bukti/{id}', [TransaksiController::class, 'uploadBuktiPembayaran']);
+    Route::get('/transaksi/dibayar', [TransaksiController::class, 'getTransaksiDibayar']);
+    Route::post('/transaksi/verifikasi/{id}', [TransaksiController::class, 'verifikasiTransaksi']);
+    Route::post('/transaksi/tolak/{id}', [TransaksiController::class, 'tolakTransaksi']);
+
     Route::post('/transaksi/konfirmasi-ambil/{id_penitipan}', [TransaksiController::class, 'konfirmasiAmbil']);
     Route::get('/gudang/transaksi', [TransaksiController::class, 'transaksiGudang']);
     Route::post('/gudang/transaksi/jadwalkan-kurir/{id_transaksi}', [TransaksiController::class, 'jadwalkanPengirimanKurir']);
@@ -145,6 +153,7 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
 
     Route::post('/barang/{id_penitipan}', [BarangController::class, 'storeBarangDalamPenitipan']);
 
+    Route:: get('/laporan/penitipan/habis', [PenitipanController::class, 'laporanBarangHabis']);
     Route::get('/barang/kategori/{kategori}', [PenitipanController::class, 'getBarangByKategori'])->where('kategori', '.*');
     Route::get('/show/{id}', [PenitipanController::class, 'show']);
     Route::get('/search', [PenitipanController::class, 'searchBarangByNama']);
@@ -188,4 +197,14 @@ Route::get('non/', [BarangController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/diskusi/{id_barang}', [DiskusiController::class, 'getByBarang']);
     Route::post('/diskusi/kirim', [DiskusiController::class, 'kirimPesan']);
+    Route::post('/diskusi/baca/{id_barang}', [DiskusiController::class, 'tandaiDiskusiSudahDibaca']);
 });
+
+//Keranjang
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/keranjang/tambah', [KeranjangController::class, 'tambah']);
+    Route::delete('/keranjang/hapus/{id}', [KeranjangController::class, 'hapus']);
+    Route::get('/keranjang', [KeranjangController::class, 'index']);
+    Route::get('/keranjang/count', [KeranjangController::class, 'getCount']);
+});
+

@@ -17,35 +17,39 @@ class AlamatController extends Controller
     // POST /api/alamat → buat alamat baru
     public function store(Request $request)
     {
-        $request->validate([
-            'kelurahan' => 'required|string|max:100',
-            'kecamatan' => 'required|string|max:100',
+        $user = $request->user(); // asumsi autentikasi sudah dilakukan
+        $data = $request->validate([
+            'kecamatan' => 'required|string',
+            'kelurahan' => 'required|string',
             'detail_alamat' => 'required|string',
-            'kode_pos' => 'required|max:10',
+            'kode_pos' => 'required|string',
         ]);
-        try {
-            $alamat = Alamat::create([
-                'provinsi' => 'DIY Yogyakarta',
-                'kelurahan' => $request->kelurahan,
-                'kecamatan' => $request->kecamatan,
-                'detail_alamat' => $request->detail_alamat,
-                'kode_pos' => $request->kode_pos,
-                'id_pembeli' => Auth::user()->id_pembeli,
-            ]);
 
-            return response()->json([
-                'message' => 'Alamat berhasil ditambahkan.',
-                'data' => $alamat
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Terjadi kesalahan saat menyimpan alamat.',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        // Cek apakah user belum punya alamat utama
+        $sudahAdaUtama = Alamat::where('id_pembeli', $user->id_pembeli)
+            ->where('utama', true)
+            ->exists();
+
+        $data = $request->validate([
+            'kecamatan' => 'required|string',
+            'kelurahan' => 'required|string',
+            'detail_alamat' => 'required|string',
+            'kode_pos' => 'required|string',
+        ]);
+
+        $alamat = new Alamat([
+            ...$data,
+            'provinsi' => 'DIY Yogyakarta',
+            'id_pembeli' => $request->user()->id_pembeli,
+            'utama' => !$sudahAdaUtama,
+        ]);
+
+        $alamat->save();
 
 
+        return response()->json($alamat);
     }
+
 
     public function show()
     {
@@ -83,12 +87,41 @@ class AlamatController extends Controller
     // DELETE /api/alamat/{id}
     public function destroy($id)
     {
-        $alamat = Alamat::where('id_alamat', $id)
-            ->where('id_pembeli', Auth::user()->id_pembeli)
-            ->firstOrFail();
+        $alamat = Alamat::findOrFail($id);
+        $userId = $alamat->id_pembeli;
+        $wasUtama = $alamat->utama;
 
         $alamat->delete();
 
-        return response()->json(['message' => 'Alamat berhasil dihapus.']);
+        if ($wasUtama) {
+            // Cari alamat tertua yang tersisa dan jadikan utama
+            $alamatBaru = Alamat::where('id_pembeli', $userId)
+                ->orderBy('created_at')
+                ->first();
+
+            if ($alamatBaru) {
+                $alamatBaru->utama = true;
+                $alamatBaru->save();
+            }
+        }
+
+        return response()->json(['message' => 'Alamat berhasil dihapus']);
     }
+
+    public function setUtama($id)
+    {
+        $alamat = Alamat::findOrFail($id);
+        $userId = $alamat->id_pembeli;
+
+        // Set semua alamat menjadi tidak utama
+        Alamat::where('id_pembeli', $userId)->update(['utama' => false]);
+
+        // Set yang dipilih jadi utama
+        $alamat->utama = true;
+        $alamat->save();
+
+        return response()->json(['message' => 'Alamat berhasil dijadikan utama']);
+    }
+
+
 }

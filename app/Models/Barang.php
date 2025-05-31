@@ -46,12 +46,12 @@ class Barang extends Model
         return $this->belongsTo(Donasi::class, 'id_barang');
     }
 
-    // public function diskusi()
-    // {
-    //     return $this->belongsTo(Diskusi::class, 'id_barang');
-    // }
+    public function diskusi()
+    {
+        return $this->hasMany(\App\Models\Diskusi::class, 'id_barang', 'id_barang');
+    }
 
-    public function detailpenitipan()
+    public function detailPenitipan()
     {
         return $this->hasOne(DetailPenitipan::class, 'id_barang');
     }

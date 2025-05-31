@@ -4,29 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Barang;
 
-class Alamat extends Model
+
+class Keranjang extends Model
 {
     use HasFactory;
 
-    protected $table = 'alamat';
-    protected $primaryKey = 'id_alamat';
-    public $incrementing = true;
-    protected $keyType = 'int';
-
+    protected $table = 'keranjang';
+    protected $primaryKey = 'id';
     public $timestamps = true;
 
     protected $fillable = [
-        'provinsi',
-        'kelurahan',
-        'kecamatan',
-        'detail_alamat',
-        'kode_pos',
         'id_pembeli',
-        'created_at',
-        'updated_at',
-        'utama',
+        'id_barang',
+        'jumlah',
     ];
+
+    public function barang()
+    {
+        return $this->belongsTo(Barang::class, 'id_barang', 'id_barang');
+    }
 
     public function pembeli()
     {

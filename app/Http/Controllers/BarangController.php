@@ -200,23 +200,33 @@ class BarangController extends Controller
 
 
 
-    public function getAllBarangForPegawai(Request $request)
-    {
-        $pegawai = $request->user();
+   public function getAllBarangForPegawai(Request $request)
+{
+    $pegawai = $request->user();
 
-        if (!$pegawai || $pegawai->id_pegawai === null) {
-            return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
-        }
-
-        $barang = Barang::with('foto_barang', 'penitipan.penitip') // tambahkan eager loading relasi foto_barang
-            ->where('status_barang', 'tersedia')
-            ->get();
-
-        return response()->json([
-            'barang' => $barang,
-            'id_jabatan' => $pegawai->id_jabatan,
-        ]);
+    if (!$pegawai || $pegawai->id_pegawai === null) {
+        return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
     }
+
+    $barang = Barang::with([
+            'foto_barang',
+            'detailpenitipan.penitipan.penitip'
+        ])
+        ->withCount([
+            'diskusi as jumlah_chat_baru' => function ($q) {
+                $q->where('is_read', false);
+            }
+        ])
+        ->where('status_barang', 'tersedia')
+        ->whereHas('diskusi') // hanya barang yang punya diskusi
+        ->get();
+
+    return response()->json([
+        'barang' => $barang,
+        'id_jabatan' => $pegawai->id_jabatan,
+    ]);
+}
+
 
     public function getAllNonBarangForPegawai()
     {
