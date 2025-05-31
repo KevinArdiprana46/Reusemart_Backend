@@ -512,6 +512,7 @@ class TransaksiController extends Controller
         ]);
     }
 
+
     public function cekTransaksiHangus()
     {
         $now = Carbon::now();
@@ -835,7 +836,7 @@ class TransaksiController extends Controller
         if ($penitip && ($penitip->komisi == 0 && $penitip->bonus == 0)) {
             foreach ($penitip->penitipan ?? [] as $p) {
                 foreach ($p->barang ?? [] as $barang) {
-                    if (strtolower($barang->status_barang) === ['terjual','sold out']) {
+                    if (strtolower($barang->status_barang) === ['terjual', 'sold out']) {
                         if (!$transaksi->tanggal_pelunasan)
                             continue;
 
@@ -961,10 +962,10 @@ class TransaksiController extends Controller
         }
 
         $transaksi = Transaksi::with([
-            'detailtransaksi.barang.detailPenitipan.penitipan',
             'pembeli.alamat',
+            'detailtransaksi.barang.detailpenitipan.penitipan.pegawaiQc', // ✅ relasi QC
             'pegawai'
-        ])->orderByDesc('created_at')->get();
+        ])->get();
 
 
         return response()->json($transaksi);

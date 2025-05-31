@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\DetailPenitipan;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use App\Models\Penitipan;
-use Carbon\Carbon;
 use App\Models\Barang;
 
 use Illuminate\Support\Facades\Auth;
@@ -149,8 +150,7 @@ class PenitipanController extends Controller
         ]);
     }
 
-    use Illuminate\Support\Facades\DB;
-    use Carbon\Carbon;
+ 
 
     public function konfirmasiPengambilan($id)
     {
