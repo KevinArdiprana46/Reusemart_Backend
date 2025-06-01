@@ -11,6 +11,17 @@ use Illuminate\Support\Facades\Validator;
 
 class PenitipController extends Controller
 {
+    public function updateFcmTokenPenitip(Request $request)
+    {
+        $penitip = Penitip::find($request->id_penitip);
+        if ($penitip) {
+            $penitip->fcm_token = $request->fcm_token;
+            $penitip->save();
+            return response()->json(['message' => 'Token updated']);
+        }
+        return response()->json(['message' => 'Not found'], 404);
+    }
+
     public function index()
     {
         $penitip = Penitip::all();
@@ -210,19 +221,20 @@ class PenitipController extends Controller
     }
 
 
-    public function barangPenitip(){
+    public function barangPenitip()
+    {
         $penitip = auth()->user();
 
-    if (!$penitip || !$penitip instanceof Penitip) {
-        return response()->json(['message' => 'Unauthorized'], 401);
+        if (!$penitip || !$penitip instanceof Penitip) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $barang = Barang::with('foto_barang')
+            ->where('id_penitip', $penitip->id_penitip)
+            ->get();
+
+        return response()->json($barang);
     }
-
-    $barang = Barang::with('foto_barang')
-        ->where('id_penitip', $penitip->id_penitip)
-        ->get();
-
-    return response()->json($barang);
-}
     public function getAllPenitip()
     {
         $penitip = Penitip::select('id_penitip', 'nama_lengkap')->get();
