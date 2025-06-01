@@ -21,6 +21,9 @@ use App\Http\Controllers\{
     KeranjangController
 };
 
+//FCM TOKEN
+Route::post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
+
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
 Route::post('/login', [LoginController::class, 'login']);
@@ -167,6 +170,7 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
 
 // 📦 BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
+    Route::get('/', [BarangController::class, 'index']);
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
     Route::post('/', [BarangController::class, 'store']);
     Route::post('/update/{id}', [BarangController::class, 'update']);
@@ -177,7 +181,6 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/terjual', [BarangController::class, 'getBarangTerjual']);
 
 
-    Route::get('/', [BarangController::class, 'index']);
     Route::put('/rating/{id}', [BarangController::class, 'beriRatingBarang']);
     Route::get('/hitung-rating/{id}', [BarangController::class, 'hitungRatingPenitip']);
 
@@ -208,4 +211,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/keranjang', [KeranjangController::class, 'index']);
     Route::get('/keranjang/count', [KeranjangController::class, 'getCount']);
 });
-

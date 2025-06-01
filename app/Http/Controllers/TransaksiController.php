@@ -71,11 +71,13 @@ class TransaksiController extends Controller
     {
         $pegawai = auth()->user();
 
-        // if (!$pegawai || $pegawai->id_jabatan !== 6) {
-        //     return response()->json(['message' => 'Unauthorized'], 403);
-        // }
+        // 🔐 Validasi hanya pegawai dengan id_jabatan = 3 yang boleh
+        if (!$pegawai || $pegawai->id_jabatan !== 3) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
-        $transaksi = Transaksi::find($id);
+        // Ambil transaksi dan semua detail → barang → penitip
+        $transaksi = Transaksi::with('detailTransaksi.barang.penitip')->find($id);
 
         if (!$transaksi) {
             return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
@@ -85,12 +87,34 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak valid untuk diverifikasi.'], 400);
         }
 
+        // Update status
         $transaksi->status_transaksi = 'disiapkan';
         $transaksi->save();
 
+        // 🔁 Kirim notifikasi ke seluruh penitip unik
+        $notifiedPenitipIds = [];
 
-        return response()->json(['message' => 'Transaksi berhasil diverifikasi.'], 200);
+        foreach ($transaksi->detailTransaksi as $detail) {
+            $barang = $detail->barang;
+            $penitip = optional($barang)->penitip;
+
+            if ($penitip && $penitip->fcm_token && !in_array($penitip->id_penitip, $notifiedPenitipIds)) {
+                sendFCMWithJWT(
+                    $penitip->fcm_token,
+                    'Barang Anda Disiapkan',
+                    'Barang Anda sedang disiapkan untuk dikirim atau diambil.'
+                );
+
+                $notifiedPenitipIds[] = $penitip->id_penitip;
+            }
+        }
+
+        return response()->json([
+            'message' => 'Transaksi berhasil diverifikasi dan notifikasi dikirim.',
+        ]);
     }
+
+
 
     public function riwayatPembelian()
     {
@@ -127,10 +151,12 @@ class TransaksiController extends Controller
                 'poin_digunakan' => $trx->poin_digunakan,
                 'detail' => $trx->detailtransaksi->map(function ($d) {
                     return [
+                        'id_barang' => $d->barang->id_barang,
                         'nama_barang' => $d->barang->nama_barang ?? '-',
                         'kategori_barang' => $d->barang->kategori_barang ?? '-',
                         'harga' => $d->barang->harga_barang ?? 0,
                         'jumlah' => $d->jumlah,
+                        'rating_barang' => $d->barang->rating_barang ?? 0,
                     ];
                 }),
             ];
@@ -189,7 +215,16 @@ class TransaksiController extends Controller
                 'created_at' => $trx->created_at,
                 'poin_reward' => $trx->poin_reward,
                 'poin_digunakan' => $trx->poin_digunakan,
-                'detail' => $detail,
+                'detail' => $trx->detailtransaksi->map(function ($d) {
+                    return [
+                        'id_barang' => $d->barang->id_barang,
+                        'nama_barang' => $d->barang->nama_barang ?? '-',
+                        'kategori_barang' => $d->barang->kategori_barang ?? '-',
+                        'harga' => $d->barang->harga_barang ?? 0,
+                        'jumlah' => $d->jumlah,
+                        'rating_barang' => $d->barang->rating_barang ?? 0,
+                    ];
+                }),
             ];
         });
 
@@ -999,9 +1034,4 @@ class TransaksiController extends Controller
 
         return response()->json($transaksi);
     }
-
-
-
 }
-
-
