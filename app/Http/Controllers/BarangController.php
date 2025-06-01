@@ -22,7 +22,7 @@ class BarangController extends Controller
 
     public function show($id)
     {
-        $barang = Barang::with('foto_barang')->find($id);
+        $barang = Barang::with('foto_barang', 'detailpenitipan.penitipan.penitip')->find($id);
         if (!$barang) {
             return response()->json(['message' => 'Barang not found'], 404);
         }
