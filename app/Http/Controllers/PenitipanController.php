@@ -71,7 +71,7 @@ class PenitipanController extends Controller
 
         $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
             ->where('id_penitip', $penitip->id_penitip)
-            ->whereHas('barang', function ($query) use ($kategori) {
+            ->whereHas('detailpenitipan.barang', function ($query) use ($kategori) {
                 $query->whereRaw('LOWER(TRIM(kategori_barang)) = ?', [strtolower(trim($kategori))]);
             })
             ->get();
@@ -85,6 +85,7 @@ class PenitipanController extends Controller
 
         return response()->json($penitipanList);
     }
+
 
     public function show($id)
     {
