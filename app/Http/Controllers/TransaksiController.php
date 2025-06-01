@@ -76,8 +76,8 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Ambil transaksi dan semua detail → barang → penitip
-        $transaksi = Transaksi::with('detailTransaksi.barang.penitip')->find($id);
+        // Ambil transaksi dan semua relasi yang dibutuhkan
+        $transaksi = Transaksi::with('detailTransaksi.barang.detailPenitipan.penitipan.penitip')->find($id);
 
         if (!$transaksi) {
             return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
@@ -87,7 +87,7 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak valid untuk diverifikasi.'], 400);
         }
 
-        // Update status
+        // Update status transaksi
         $transaksi->status_transaksi = 'disiapkan';
         $transaksi->save();
 
@@ -96,16 +96,31 @@ class TransaksiController extends Controller
 
         foreach ($transaksi->detailTransaksi as $detail) {
             $barang = $detail->barang;
-            $penitip = optional($barang)->penitip;
+            $detailPenitipanList = $barang->detailPenitipan ?? [];
 
-            if ($penitip && $penitip->fcm_token && !in_array($penitip->id_penitip, $notifiedPenitipIds)) {
-                sendFCMWithJWT(
-                    $penitip->fcm_token,
-                    'Barang Anda Disiapkan',
-                    'Barang Anda sedang disiapkan untuk dikirim atau diambil.'
-                );
+            foreach ($detailPenitipanList as $detailPenitipan) {
+                $penitipan = $detailPenitipan->penitipan;
+                $penitip = $penitipan?->penitip;
 
-                $notifiedPenitipIds[] = $penitip->id_penitip;
+                if ($penitip) {
+                    \Log::info("🔍 Penitip: ", [$penitip]);
+
+                    if ($penitip->fcm_token && !in_array($penitip->id_penitip, $notifiedPenitipIds)) {
+                        \Log::info("📲 Kirim notifikasi ke penitip ID {$penitip->id_penitip}");
+
+                        sendFCMWithJWT(
+                            $penitip->fcm_token,
+                            'Barang Anda Disiapkan',
+                            'Barang Anda sedang disiapkan untuk dikirim atau diambil.'
+                        );
+
+                        $notifiedPenitipIds[] = $penitip->id_penitip;
+                    } else {
+                        \Log::warning("⚠️ Tidak ada FCM token atau sudah dikirim.");
+                    }
+                } else {
+                    \Log::warning("⚠️ Penitip tidak ditemukan dalam relasi.");
+                }
             }
         }
 
@@ -113,7 +128,6 @@ class TransaksiController extends Controller
             'message' => 'Transaksi berhasil diverifikasi dan notifikasi dikirim.',
         ]);
     }
-
 
 
     public function riwayatPembelian()

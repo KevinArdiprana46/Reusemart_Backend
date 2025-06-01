@@ -1,21 +1,23 @@
 <?php
 
 use Illuminate\Support\Facades\Http;
-new \Google_Client;
+use Illuminate\Support\Facades\Log;
 
-if (!function_exists('sendFCMWithJWT')) {
-    function sendFCMWithJWT($fcmToken, $title, $body)
-    {
+
+function sendFCMWithJWT($fcmToken, $title, $body)
+{
+    try {
         $jsonPath = base_path(env('FIREBASE_CREDENTIALS'));
-        $jsonKey = json_decode(file_get_contents($jsonPath), true);
-
-
         $client = new Google_Client();
-        $client->setAuthConfig($jsonKey);
+        $client->setAuthConfig($jsonPath);
         $client->addScope('https://www.googleapis.com/auth/firebase.messaging');
         $client->refreshTokenWithAssertion();
+
         $accessToken = $client->getAccessToken()['access_token'];
 
+        Log::info('✅ Firebase Access Token:', ['token' => $accessToken]);
+
+        $jsonKey = json_decode(file_get_contents($jsonPath), true);
         $projectId = $jsonKey['project_id'];
 
         $response = Http::withToken($accessToken)->post(
@@ -34,6 +36,11 @@ if (!function_exists('sendFCMWithJWT')) {
             ]
         );
 
+        Log::info('✅ FCM response:', $response->json());
+
         return $response->json();
+    } catch (\Exception $e) {
+        Log::error('❌ FCM error: ' . $e->getMessage());
+        return ['error' => $e->getMessage()];
     }
 }
