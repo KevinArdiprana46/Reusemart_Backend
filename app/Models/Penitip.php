@@ -34,6 +34,7 @@ class Penitip extends Authenticatable
         'id_role',
         'foto_ktp',
         'no_ktp',
+        'fcm_token',
     ];
 
     public function role()
