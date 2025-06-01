@@ -94,26 +94,34 @@ class PenitipanController extends Controller
             return response()->json(['message' => 'Penitipan not found'], 404);
         }
 
-        // Ambil barang pertama saja untuk ditampilkan
-        $firstBarang = $penitipan->detailpenitipan->first()->barang ?? null;
+        // Ambil barang pertama yang dititipkan
+        $firstDetail = $penitipan->detailpenitipan->first();
+        $firstBarang = $firstDetail->barang ?? null;
 
         if (!$firstBarang) {
             return response()->json(['message' => 'Barang tidak ditemukan.'], 404);
         }
 
-        $idPenitip = $penitipan->id_penitip;
-
-        $transaksiTerakhir = \App\Models\Transaksi::where('id_penitip', $idPenitip)
-            ->orderByDesc('created_at')
+        // Ambil transaksi dari tabel detailtransaksi berdasarkan id_barang
+        $detailTransaksi = \App\Models\DetailTransaksi::where('id_barang', $firstBarang->id_barang)
+            ->orderByDesc('id_detail')
             ->first();
+
+        $statusTransaksi = null;
+
+        if ($detailTransaksi && $detailTransaksi->id_transaksi) {
+            $transaksi = \App\Models\Transaksi::find($detailTransaksi->id_transaksi);
+            $statusTransaksi = $transaksi->status_transaksi ?? null;
+        }
 
         return response()->json([
             'penitipan' => $penitipan,
             'barang' => $firstBarang,
-            'status_transaksi' => $transaksiTerakhir->status_transaksi ?? null,
+            'status_transaksi' => $statusTransaksi,
             'status_barang' => $firstBarang->status_barang ?? null,
         ]);
     }
+
 
 
 
@@ -182,7 +190,7 @@ class PenitipanController extends Controller
         ]);
     }
 
- 
+
 
     public function konfirmasiPengambilan($id)
     {

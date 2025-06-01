@@ -21,6 +21,9 @@ use App\Http\Controllers\{
     KeranjangController
 };
 
+//FCM TOKEN
+Route::post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
+
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
 Route::post('/login', [LoginController::class, 'login']);

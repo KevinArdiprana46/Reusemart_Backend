@@ -71,11 +71,13 @@ class TransaksiController extends Controller
     {
         $pegawai = auth()->user();
 
-        // if (!$pegawai || $pegawai->id_jabatan !== 6) {
-        //     return response()->json(['message' => 'Unauthorized'], 403);
-        // }
+        // 🔐 Validasi hanya pegawai dengan id_jabatan = 3 yang boleh
+        if (!$pegawai || $pegawai->id_jabatan !== 3) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
-        $transaksi = Transaksi::find($id);
+        // Ambil transaksi dan semua detail → barang → penitip
+        $transaksi = Transaksi::with('detailTransaksi.barang.penitip')->find($id);
 
         if (!$transaksi) {
             return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
@@ -85,12 +87,34 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak valid untuk diverifikasi.'], 400);
         }
 
+        // Update status
         $transaksi->status_transaksi = 'disiapkan';
         $transaksi->save();
 
+        // 🔁 Kirim notifikasi ke seluruh penitip unik
+        $notifiedPenitipIds = [];
 
-        return response()->json(['message' => 'Transaksi berhasil diverifikasi.'], 200);
+        foreach ($transaksi->detailTransaksi as $detail) {
+            $barang = $detail->barang;
+            $penitip = optional($barang)->penitip;
+
+            if ($penitip && $penitip->fcm_token && !in_array($penitip->id_penitip, $notifiedPenitipIds)) {
+                sendFCMWithJWT(
+                    $penitip->fcm_token,
+                    'Barang Anda Disiapkan',
+                    'Barang Anda sedang disiapkan untuk dikirim atau diambil.'
+                );
+
+                $notifiedPenitipIds[] = $penitip->id_penitip;
+            }
+        }
+
+        return response()->json([
+            'message' => 'Transaksi berhasil diverifikasi dan notifikasi dikirim.',
+        ]);
     }
+
+
 
     public function riwayatPembelian()
     {
@@ -395,7 +419,7 @@ class TransaksiController extends Controller
             'pembeli',
             'detailtransaksi.barang.foto_barang'
         ])
-            ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
+            ->whereIn('status_transaksi', ['disiapkan', 'dikirim'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -557,7 +581,7 @@ class TransaksiController extends Controller
     {
         $now = Carbon::now();
         $expiredTransaksi = Transaksi::with('penitip.penitipan')
-            ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
+            ->whereIn('status_transaksi', ['disiapkan', 'dikirim'])
             ->whereDate('tanggal_pengambilan', '<', $now->copy()->subDays(2)->toDateString())
             ->get();
 
@@ -841,7 +865,7 @@ class TransaksiController extends Controller
         }
 
         if (
-            $transaksi->status_transaksi === 'sedang disiapkan' &&
+            $transaksi->status_transaksi === 'disiapkan' &&
             strtolower($transaksi->jenis_pengiriman) === 'kurir reusemart'
         ) {
             $bolehDiproses = true;

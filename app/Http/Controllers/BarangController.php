@@ -20,14 +20,20 @@ class BarangController extends Controller
         return response()->json($barang);
     }
 
-    public function show($id)
-    {
-        $barang = Barang::with('foto_barang', 'detailpenitipan.penitipan.penitip')->find($id);
-        if (!$barang) {
-            return response()->json(['message' => 'Barang not found'], 404);
-        }
-        return response()->json($barang);
+public function show($id)
+{
+    $barang = Barang::with([
+        'foto_barang',
+        'detailpenitipan.penitipan.penitip'
+    ])->find($id);
+
+    if (!$barang) {
+        return response()->json(['message' => 'Barang not found'], 404);
     }
+
+    return response()->json($barang);
+}
+
 
     public function store(Request $request)
     {
@@ -401,8 +407,6 @@ class BarangController extends Controller
                     ]);
                 }
             }
-
-
             // Buat relasi di detailpenitipan
             DetailPenitipan::create([
                 'id_penitipan' => $id_penitipan,
