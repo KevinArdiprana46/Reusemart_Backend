@@ -8,6 +8,7 @@ use App\Models\Barang;
 use App\Models\FotoBarang;
 use App\Models\Penitip;
 use App\Models\DetailPenitipan;
+use App\Models\DetailTransaksi;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 
@@ -200,32 +201,32 @@ class BarangController extends Controller
 
 
 
-   public function getAllBarangForPegawai(Request $request)
-{
-    $pegawai = $request->user();
+    public function getAllBarangForPegawai(Request $request)
+    {
+        $pegawai = $request->user();
 
-    if (!$pegawai || $pegawai->id_pegawai === null) {
-        return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
-    }
+        if (!$pegawai || $pegawai->id_pegawai === null) {
+            return response()->json(['message' => 'Pegawai tidak ditemukan atau belum login'], 403);
+        }
 
-    $barang = Barang::with([
+        $barang = Barang::with([
             'foto_barang',
             'detailpenitipan.penitipan.penitip'
         ])
-        ->withCount([
-            'diskusi as jumlah_chat_baru' => function ($q) {
-                $q->where('is_read', false);
-            }
-        ])
-        ->where('status_barang', 'tersedia')
-        ->whereHas('diskusi') // hanya barang yang punya diskusi
-        ->get();
+            ->withCount([
+                'diskusi as jumlah_chat_baru' => function ($q) {
+                    $q->where('is_read', false);
+                }
+            ])
+            ->where('status_barang', 'tersedia')
+            ->whereHas('diskusi') // hanya barang yang punya diskusi
+            ->get();
 
-    return response()->json([
-        'barang' => $barang,
-        'id_jabatan' => $pegawai->id_jabatan,
-    ]);
-}
+        return response()->json([
+            'barang' => $barang,
+            'id_jabatan' => $pegawai->id_jabatan,
+        ]);
+    }
 
 
     public function getAllNonBarangForPegawai()
@@ -272,17 +273,39 @@ class BarangController extends Controller
             'rating_barang' => 'required|integer|min:1|max:5',
         ]);
 
-        $barang = Barang::find($id);
+        // ambil barang beserta relasi penitipan dan transaksi
+        $barang = Barang::with([
+            'detailpenitipan.penitipan',
+            'detailtransaksi.transaksi'
+        ])->find($id);
 
         if (!$barang) {
             return response()->json(['message' => 'Barang tidak ditemukan'], 404);
         }
 
-        // Karena barang cuma satu, langsung ganti rating-nya
+        // validasi apakah transaksi untuk barang ini selesai
+        $transaksiSelesai = DetailTransaksi::where('id_barang', $id)
+            ->whereHas('transaksi', function ($query) {
+                $query->where('status_transaksi', 'selesai');
+            })
+            ->exists();
+
+        if (!$transaksiSelesai) {
+            return response()->json([
+                'message' => 'Rating hanya bisa diberikan jika transaksi barang ini sudah selesai.'
+            ], 403);
+        }
+
         $barang->rating_barang = $request->rating_barang;
         $barang->save();
 
-        $this->hitungRatingPenitip($barang->id_penitip);
+        // ambil id_penitip dari relasi pivot
+        $penitipan = $barang->detailpenitipan->penitipan ?? null;
+        if (!$penitipan) {
+            return response()->json(['message' => 'Data penitipan tidak ditemukan'], 404);
+        }
+
+        $this->hitungRatingPenitip($penitipan->id_penitip);
 
         return response()->json([
             'message' => 'Rating berhasil disimpan.',
@@ -290,15 +313,20 @@ class BarangController extends Controller
         ]);
     }
 
+
     public function hitungRatingPenitip($id_penitip)
     {
-        $rataRata = Barang::where('id_penitip', $id_penitip)
-            ->where('status_barang', 'terjual') // ✅ hanya barang terjual
-            ->whereNotNull('rating_barang')     // ✅ yang sudah dinilai
+        // ambil semua barang dari penitip ini melalui penitipan → detailpenitipan → barang
+        $barangIds = DetailPenitipan::whereHas('penitipan', function ($query) use ($id_penitip) {
+            $query->where('id_penitip', $id_penitip);
+        })->pluck('id_barang');
+
+        $rataRata = Barang::whereIn('id_barang', values: $barangIds)
+            ->where('status_barang', 'sold out')
+            ->whereNotNull('rating_barang')
             ->avg('rating_barang');
 
         $penitip = Penitip::find($id_penitip);
-
         if (!$penitip) {
             return response()->json(['message' => 'Penitip tidak ditemukan'], 404);
         }
@@ -307,10 +335,11 @@ class BarangController extends Controller
         $penitip->save();
 
         return response()->json([
-            'message' => 'Rating penitip berhasil didapatkan.',
+            'message' => 'Rating penitip berhasil diperbarui.',
             'rating_penitip' => $penitip->rating_penitip
         ]);
     }
+
 
     public function getDetailBarang($id)
     {

@@ -127,10 +127,12 @@ class TransaksiController extends Controller
                 'poin_digunakan' => $trx->poin_digunakan,
                 'detail' => $trx->detailtransaksi->map(function ($d) {
                     return [
+                        'id_barang' => $d->barang->id_barang,
                         'nama_barang' => $d->barang->nama_barang ?? '-',
                         'kategori_barang' => $d->barang->kategori_barang ?? '-',
                         'harga' => $d->barang->harga_barang ?? 0,
                         'jumlah' => $d->jumlah,
+                        'rating_barang' => $d->barang->rating_barang ?? 0,
                     ];
                 }),
             ];
@@ -999,9 +1001,4 @@ class TransaksiController extends Controller
 
         return response()->json($transaksi);
     }
-
-
-
 }
-
-
