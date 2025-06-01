@@ -158,7 +158,7 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::post('/barang/{id_penitipan}', [BarangController::class, 'storeBarangDalamPenitipan']);
 
     Route::get('/laporan/penitipan/habis', [PenitipanController::class, 'laporanBarangHabis']);
-    Route::get('/barang/kategori/{kategori}', [PenitipanController::class, 'getBarangByKategori'])->where('kategori', '.*');
+    Route::get('/barang/kategori/{kategori}', [PenitipanController::class, 'getBarangByKategori']);
     Route::get('/show/{id}', [PenitipanController::class, 'show']);
     Route::get('/search', [PenitipanController::class, 'searchBarangByNama']);
     Route::post('/perpanjang/{id}', [PenitipanController::class, 'perpanjangPenitipan']);
@@ -171,7 +171,7 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
 // 📦 BARANG
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/', [BarangController::class, 'index']);
-    Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori'])->where('kategori', '.*');
+    Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori']);
     Route::post('/', [BarangController::class, 'store']);
     Route::post('/update/{id}', [BarangController::class, 'update']);
     Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);

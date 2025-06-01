@@ -235,6 +235,7 @@ class PenitipController extends Controller
 
         return response()->json($barang);
     }
+    
     public function getAllPenitip()
     {
         $penitip = Penitip::select('id_penitip', 'nama_lengkap')->get();
