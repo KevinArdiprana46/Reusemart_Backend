@@ -89,6 +89,7 @@ class TransaksiController extends Controller
 
         // Update status transaksi
         $transaksi->status_transaksi = 'disiapkan';
+        $transaksi->tanggal_pelunasan = now();
         $transaksi->save();
 
         // 🔁 Kirim notifikasi ke seluruh penitip unik
@@ -456,7 +457,7 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
         }
 
-        if (strcasecmp($transaksi->jenis_pengiriman, 'kurir reusemart') !== 0) {
+        if (strcasecmp($transaksi->jenis_pengiriman, 'kurir') !== 0) {
             return response()->json(['message' => 'Transaksi ini bukan jenis pengiriman dengan kurir Reusemart'], 422);
         }
 
@@ -475,21 +476,20 @@ class TransaksiController extends Controller
         $transaksi->status_transaksi = 'dikirim';
         $transaksi->save();
 
-        // Notifikasi email ke pembeli, penitip, dan kurir (tanpa Mail class)
-        if ($transaksi->pembeli && $transaksi->pembeli->email) {
-            Mail::raw("Halo {$transaksi->pembeli->nama_lengkap},\n\nBarang dengan nota {$transaksi->nomor_nota} akan segera dikirim oleh kurir.", function ($message) use ($transaksi) {
-                $message->to($transaksi->pembeli->email)->subject('📦 Barang Akan Dikirim');
-            });
-        }
-        if ($transaksi->penitip && $transaksi->penitip->email) {
-            Mail::raw("Halo {$transaksi->penitip->nama_lengkap},\n\nBarang dari penitipan Anda sedang dikirim ke pembeli.", function ($message) use ($transaksi) {
-                $message->to($transaksi->penitip->email)->subject('📦 Barang Penitipan Dikirim');
-            });
-        }
-        if ($kurir && $kurir->email) {
-            Mail::raw("Halo {$kurir->nama_lengkap},\n\nAnda ditugaskan untuk mengirim barang dengan nota {$transaksi->nomor_nota}.", function ($message) use ($kurir) {
-                $message->to($kurir->email)->subject('🚚 Penugasan Pengiriman Barang');
-            });
+        $tokenList = [
+            $transaksi->penitip->fcm_token ?? null,
+            $transaksi->pembeli->fcm_token ?? null,
+            $kurir->fcm_token ?? null,
+        ];
+
+        foreach ($tokenList as $token) {
+            if ($token) {
+                sendFCMWithJWT(
+                    $token,
+                    '📦 Jadwal Pengiriman',
+                    'Barang akan dikirim oleh kurir Reusemart.'
+                );
+            }
         }
 
         return response()->json([

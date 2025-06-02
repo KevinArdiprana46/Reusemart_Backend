@@ -13,6 +13,24 @@ use Storage;
 
 class PembeliController extends Controller
 {
+    public function updateFcmTokenPembeli(Request $request)
+    {
+        $request->validate([
+            'fcm_token' => 'required|string',
+        ]);
+
+        $pembeli = auth()->user(); // ambil pembeli dari token login
+
+        if (!($pembeli instanceof \App\Models\Pembeli)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+
+        $pembeli->fcm_token = $request->fcm_token;
+        $pembeli->save();
+
+        return response()->json(['message' => 'Token updated']);
+    }
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
