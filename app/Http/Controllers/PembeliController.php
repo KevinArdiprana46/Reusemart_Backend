@@ -13,6 +13,17 @@ use Storage;
 
 class PembeliController extends Controller
 {
+   public function updateFcmTokenPembeli(Request $request)
+    {
+        $pembeli = Pembeli::find($request->id_pembeli);
+        if ($pembeli) {
+            $pembeli->fcm_token = $request->fcm_token;
+            $pembeli->save();
+            return response()->json(['message' => 'Token updated']);
+        }
+        return response()->json(['message' => 'Not found'], 404);
+    }
+   
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
