@@ -167,6 +167,9 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::post('/ambil-kembali/{id_barang}', [PenitipanController::class, 'konfirmasiPengambilanKembali']);
 
     Route::post('/full-store', [PenitipanController::class, 'storePenitipan']);
+
+    Route::get('/test-notifikasi-penitip/{id_penitip}', [PenitipanController::class, 'testKirimNotifikasi']);
+    Route::get('/test-notif-penitipan', [PenitipanController::class, 'testNotifikasiTanggal']);
 });
 
 // 📦 BARANG

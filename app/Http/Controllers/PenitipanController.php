@@ -8,6 +8,7 @@ use Carbon\Carbon;
 use App\Models\Transaksi;
 use Illuminate\Http\Request;
 use App\Models\Penitipan;
+use App\Models\Penitip;
 use App\Models\Barang;
 
 use Illuminate\Support\Facades\Auth;
@@ -182,7 +183,7 @@ class PenitipanController extends Controller
         ]);
     }
 
- 
+
 
     public function konfirmasiPengambilan($id)
     {
@@ -366,5 +367,52 @@ class PenitipanController extends Controller
         ]);
     }
 
+    public function testKirimNotifikasi($id_penitip)
+    {
+        $penitip = Penitip::find($id_penitip);
 
+        if (!$penitip || !$penitip->fcm_token) {
+            return response()->json(['error' => 'Penitip tidak ditemukan atau token kosong'], 404);
+        }
+
+        sendFCMWithJWT(
+            $penitip->fcm_token,
+            '🔔 Ini Hanya Test',
+            'Notifikasi ini dikirim tanpa filter tanggal penitipan.'
+        );
+
+        return response()->json(['message' => '✅ Notifikasi test dikirim']);
+    }
+
+    public function testNotifikasiTanggal()
+    {
+        $tanggalList = [
+            now()->toDateString() => 'Hari ini adalah hari terakhir masa penitipan Anda.',
+            now()->addDays(3)->toDateString() => 'Sisa 3 hari sebelum masa penitipan barang Anda berakhir.'
+        ];
+
+        $totalDikirim = 0;
+
+        foreach ($tanggalList as $tanggal => $pesan) {
+            $details = DetailPenitipan::with('penitipan.penitip')
+                ->whereHas('penitipan', function ($query) use ($tanggal) {
+                    $query->whereDate('tanggal_akhir', $tanggal);
+                })
+                ->get();
+
+            foreach ($details as $detail) {
+                $penitip = optional($detail->penitipan)->penitip;
+
+                if ($penitip && $penitip->fcm_token) {
+                    sendFCMWithJWT($penitip->fcm_token, '🔔 Notifikasi Test Tanggal', $pesan);
+                    $totalDikirim++;
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => '✅ Test notifikasi H-3 & Hari-H dikirim',
+            'total_dikirim' => $totalDikirim
+        ]);
+    }
 }
