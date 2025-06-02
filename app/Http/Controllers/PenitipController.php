@@ -13,14 +13,23 @@ class PenitipController extends Controller
 {
     public function updateFcmTokenPenitip(Request $request)
     {
-        $penitip = Penitip::find($request->id_penitip);
-        if ($penitip) {
-            $penitip->fcm_token = $request->fcm_token;
-            $penitip->save();
-            return response()->json(['message' => 'Token updated']);
+        $request->validate([
+            'fcm_token' => 'required|string',
+        ]);
+
+        $penitip = auth()->user(); // ambil penitip dari token login
+
+        if (!($penitip instanceof \App\Models\Penitip)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
-        return response()->json(['message' => 'Not found'], 404);
+
+
+        $penitip->fcm_token = $request->fcm_token;
+        $penitip->save();
+
+        return response()->json(['message' => 'Token updated']);
     }
+
 
     public function index()
     {

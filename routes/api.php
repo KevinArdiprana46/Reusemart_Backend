@@ -21,9 +21,11 @@ use App\Http\Controllers\{
     KeranjangController
 };
 
+
 //FCM TOKEN
 Route::post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
 Route::post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
+// Route::middleware('auth:sanctum')->post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
 
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
@@ -167,6 +169,9 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::post('/ambil-kembali/{id_barang}', [PenitipanController::class, 'konfirmasiPengambilanKembali']);
 
     Route::post('/full-store', [PenitipanController::class, 'storePenitipan']);
+
+    Route::get('/test-notifikasi-penitip/{id_penitip}', [PenitipanController::class, 'testKirimNotifikasi']);
+    Route::get('/test-notif-penitipan', [PenitipanController::class, 'testNotifikasiTanggal']);
 });
 
 // 📦 BARANG
