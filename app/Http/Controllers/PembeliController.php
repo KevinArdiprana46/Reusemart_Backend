@@ -13,17 +13,25 @@ use Storage;
 
 class PembeliController extends Controller
 {
-   public function updateFcmTokenPembeli(Request $request)
+    public function updateFcmTokenPembeli(Request $request)
     {
-        $pembeli = Pembeli::find($request->id_pembeli);
-        if ($pembeli) {
-            $pembeli->fcm_token = $request->fcm_token;
-            $pembeli->save();
-            return response()->json(['message' => 'Token updated']);
+        $request->validate([
+            'fcm_token' => 'required|string',
+        ]);
+
+        $pembeli = auth()->user(); // ambil pembeli dari token login
+
+        if (!($pembeli instanceof Pembeli)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
-        return response()->json(['message' => 'Not found'], 404);
+
+        $pembeli->fcm_token = $request->fcm_token;
+        $pembeli->save();
+
+        return response()->json(['message' => 'Token updated']);
     }
-   
+
+
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [

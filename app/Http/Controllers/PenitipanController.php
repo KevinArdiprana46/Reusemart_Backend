@@ -12,6 +12,7 @@ use App\Models\Penitip;
 use App\Models\Barang;
 
 use Illuminate\Support\Facades\Auth;
+use Log;
 
 class PenitipanController extends Controller
 {
@@ -192,45 +193,46 @@ class PenitipanController extends Controller
         ]);
     }
 
-
-
     public function konfirmasiPengambilan($id)
-    {
-        $pegawai = auth()->user();
+{
+    $pegawai = auth()->user();
 
-        if (!$pegawai || $pegawai->id_jabatan !== 7) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $penitipan = Penitipan::with('detailpenitipan')->find($id);
-
-        if (!$penitipan) {
-            return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
-        }
-
-        // Ambil semua ID barang dari detailpenitipan
-        $idBarangList = $penitipan->detailpenitipan->pluck('id_barang');
-
-        // Cari transaksi yang terkait dengan barang-barang tersebut
-        $transaksi = \App\Models\Transaksi::whereIn('id_barang', $idBarangList)->latest()->first();
-
-        if (!$transaksi) {
-            return response()->json(['message' => 'Transaksi untuk barang ini tidak ditemukan.'], 404);
-        }
-
-        if ($transaksi->status_transaksi === 'selesai') {
-            return response()->json(['message' => 'Transaksi sudah selesai.'], 400);
-        }
-
-        $transaksi->status_transaksi = 'selesai';
-        $transaksi->tanggal_diterima = Carbon::now(); // opsional, jika kamu punya kolom ini
-        $transaksi->save();
-
-        return response()->json([
-            'message' => 'Transaksi berhasil dikonfirmasi selesai.',
-            'data' => $transaksi,
-        ]);
+    if (!$pegawai || $pegawai->id_jabatan !== 7) {
+        return response()->json(['message' => 'Unauthorized'], 403);
     }
+
+    $penitipan = Penitipan::with('detailpenitipan')->find($id);
+
+    if (!$penitipan) {
+        return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
+    }
+
+    $idBarangList = $penitipan->detailpenitipan->pluck('id_barang');
+
+    // Ambil transaksi terkait barang (satu transaksi saja yang terbaru)
+    $transaksi = Transaksi::whereHas('detailTransaksi', function ($query) use ($idBarangList) {
+        $query->whereIn('id_barang', $idBarangList);
+    })->latest()->first();
+
+    if (!$transaksi) {
+        return response()->json(['message' => 'Transaksi untuk barang ini tidak ditemukan.'], 404);
+    }
+
+    if ($transaksi->status_transaksi === 'selesai') {
+        return response()->json(['message' => 'Transaksi sudah selesai.'], 400);
+    }
+
+    $transaksi->status_transaksi = 'selesai';
+    $transaksi->tanggal_diterima = Carbon::now(); // jika kolom tersedia
+    $transaksi->save();
+
+    return response()->json([
+        'message' => 'Transaksi berhasil dikonfirmasi selesai.',
+        'data' => $transaksi,
+    ]);
+}
+
+
     public function storePenitipanBarang(Request $request)
     {
         $request->validate([

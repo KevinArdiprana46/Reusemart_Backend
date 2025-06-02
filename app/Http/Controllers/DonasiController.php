@@ -19,12 +19,12 @@ class DonasiController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_barang'     => 'sometimes|string|max:255',
-            'pesan_request'   => 'sometimes|string',
-            'status_donasi'   => 'sometimes|nullable|string|max:255',
-            'tanggal_donasi'  => 'sometimes|nullable|date',
-            'id_barang'       => 'sometimes|nullable|exists:barang,id_barang',
-            'id_organisasi'   => 'sometimes|nullable|exists:organisasi,id_organisasi',
+            'nama_barang' => 'sometimes|string|max:255',
+            'pesan_request' => 'sometimes|string',
+            'status_donasi' => 'sometimes|nullable|string|max:255',
+            'tanggal_donasi' => 'sometimes|nullable|date',
+            'id_barang' => 'sometimes|nullable|exists:barang,id_barang',
+            'id_organisasi' => 'sometimes|nullable|exists:organisasi,id_organisasi',
         ]);
 
         $donasi = Donasi::create($validated);
@@ -34,19 +34,19 @@ class DonasiController extends Controller
         ], 201);
     }
 
-    
+
 
     public function update(Request $request, $id)
     {
         $donasi = Donasi::findOrFail($id);
 
         $validated = $request->validate([
-            'nama_barang'     => 'sometimes|string|max:255',
-            'pesan_request'   => 'sometimes|string',
-            'status_donasi'   => 'sometimes|nullable|string|max:255',
-            'tanggal_donasi'  => 'sometimes|nullable|date',
-            'id_barang'       => 'sometimes|nullable|exists:barang,id_barang',
-            'id_organisasi'   => 'sometimes|nullable|exists:organisasi,id_organisasi',
+            'nama_barang' => 'sometimes|string|max:255',
+            'pesan_request' => 'sometimes|string',
+            'status_donasi' => 'sometimes|nullable|string|max:255',
+            'tanggal_donasi' => 'sometimes|nullable|date',
+            'id_barang' => 'sometimes|nullable|exists:barang,id_barang',
+            'id_organisasi' => 'sometimes|nullable|exists:organisasi,id_organisasi',
         ]);
 
         $donasi->update($validated);
@@ -126,32 +126,31 @@ class DonasiController extends Controller
         $request->validate([
             'id_barang' => 'required|exists:barang,id_barang',
             'tanggal_donasi' => 'required|date',
-            'nama_penerima' => 'required|string|max:255',
         ]);
 
         $donasi = Donasi::findOrFail($id);
 
-        // Pastikan status masih 'diminta'
+        // Validasi status donasi
         if ($donasi->status_donasi !== 'diminta') {
             return response()->json([
                 'message' => 'Donasi ini sudah diproses atau tidak dapat dikirim.',
             ], 400);
         }
 
-        $barang = Barang::findOrFail($request->id_barang);
+        // Ambil barang beserta detailPenitipan
+        $barang = Barang::with('detailPenitipan.penitipan.penitip')->findOrFail($request->id_barang);
 
-        // Cek stok barang
+        // Cek stok
         if ($barang->stock <= 0) {
             return response()->json([
                 'message' => 'Stok barang habis. Tidak bisa mengirim barang ini.',
             ], 400);
         }
 
-        // Update data donasi
+        // Update donasi
         $donasi->update([
             'id_barang' => $barang->id_barang,
             'tanggal_donasi' => $request->tanggal_donasi,
-            'nama_penerima' => $request->nama_penerima,
             'status_donasi' => 'disiapkan',
         ]);
 
@@ -159,15 +158,34 @@ class DonasiController extends Controller
         $barang->stock -= 1;
         $barang->save();
 
-        // Tambahkan poin ke penitip
+        // Ambil penitip melalui relasi pivot
+        $penitip = optional($barang->detailPenitipan->first()?->penitipan)->penitip;
+
+        // Tambahkan poin dan kirim notifikasi jika penitip ditemukan
         $poinTambahan = 0;
-        if ($barang->id_penitip) {
-            $penitip = Penitip::find($barang->id_penitip);
-            if ($penitip) {
-                $poinTambahan = floor($barang->harga_barang / 10000);
-                $penitip->poin_sosial += $poinTambahan;
-                $penitip->save();
+        if ($penitip) {
+            $poinTambahan = floor($barang->harga_barang / 10000);
+            $penitip->poin_sosial += $poinTambahan;
+            $penitip->save();
+
+            if ($penitip->fcm_token) {
+                \Log::info("📲 Kirim FCM ke penitip ID {$penitip->id_penitip}");
+                \Log::debug("🧪 Token FCM: {$penitip->fcm_token}");
+
+                try {
+                    sendFCMWithJWT(
+                        $penitip->fcm_token,
+                        'Barang Anda Telah Disumbangkan',
+                        "Barang '{$barang->nama_barang}' telah disumbangkan ke penerima melalui program donasi Reusemart."
+                    );
+                } catch (\Exception $e) {
+                    \Log::error("❌ Gagal kirim FCM ke penitip: " . $e->getMessage());
+                }
+            } else {
+                \Log::warning("⚠️ Penitip tidak punya FCM token. ID: {$penitip->id_penitip}");
             }
+        } else {
+            \Log::warning("⚠️ Tidak ditemukan penitip untuk barang ID {$barang->id_barang}");
         }
 
         return response()->json([
@@ -177,6 +195,10 @@ class DonasiController extends Controller
             'poin_diberikan' => $poinTambahan,
         ]);
     }
+
+
+
+
 
 
     public function updateDonasi(Request $request, $id)

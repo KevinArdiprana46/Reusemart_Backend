@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Barang;
 use App\Models\DetailTransaksi;
 use App\Models\Keranjang;
+use App\Models\Pembeli;
 use App\Models\Transaksi;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
@@ -17,6 +18,7 @@ use Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+
 
 
 class TransaksiController extends Controller
@@ -398,34 +400,70 @@ class TransaksiController extends Controller
     }
 
 
-    public function konfirmasiAmbil($id_penitipan)
-    {
-        $penitipan = Penitipan::find($id_penitipan);
+public function konfirmasiAmbil($id_penitipan)
+{
+    $penitipan = Penitipan::with(['detailpenitipan.barang', 'penitip'])->find($id_penitipan);
 
-        if (!$penitipan) {
-            return response()->json(['message' => 'Penitipan tidak ditemukan.'], 404);
-        }
+    if (!$penitipan) {
+        return response()->json(['message' => 'Penitipan tidak ditemukan.'], 404);
+    }
 
-        $barang = Barang::find($penitipan->id_barang);
+    $barangList = $penitipan->detailpenitipan->pluck('barang')->filter();
 
-        if (!$barang) {
-            return response()->json(['message' => 'Barang tidak ditemukan.'], 404);
-        }
+    if ($barangList->isEmpty()) {
+        return response()->json(['message' => 'Barang tidak ditemukan.'], 404);
+    }
 
-        $barang->status_barang = 'terjual' || 'sold out';
+    foreach ($barangList as $barang) {
+        // Ubah status barang menjadi terjual
+        $barang->status_barang = 'terjual';
+        $barang->stock = 0;
         $barang->save();
 
-        $transaksi = Transaksi::where('id_penitip', $barang->id_penitip)
-            ->orderByDesc('created_at')
-            ->first();
+        // Ambil transaksi terakhir yang melibatkan barang ini
+        $transaksi = Transaksi::whereHas('detailTransaksi', function ($q) use ($barang) {
+            $q->where('id_barang', $barang->id_barang);
+        })->latest()->first();
 
         if ($transaksi) {
             $transaksi->status_transaksi = 'selesai';
+            $transaksi->tanggal_pelunasan = now();
             $transaksi->save();
-        }
 
-        return response()->json(['message' => 'Konfirmasi pengambilan berhasil.']);
+            // 🔔 Kirim notifikasi ke pembeli
+            $pembeli = Pembeli::find($transaksi->id_pembeli);
+            if ($pembeli && $pembeli->fcm_token) {
+                try {
+                    sendFCMWithJWT(
+                        $pembeli->fcm_token,
+                        'Barang Telah Diambil',
+                        'Barang yang Anda beli telah berhasil diambil.'
+                    );
+                } catch (\Exception $e) {
+                    Log::error("FCM error (pembeli): " . $e->getMessage());
+                }
+            }
+        }
     }
+
+    // 🔔 Kirim notifikasi ke penitip (sekali saja untuk seluruh barang)
+    $penitip = $penitipan->penitip;
+    if ($penitip && $penitip->fcm_token) {
+        try {
+            sendFCMWithJWT(
+                $penitip->fcm_token,
+                'Barang Anda Terjual',
+                'Barang Anda telah berhasil diambil oleh pembeli.'
+            );
+        } catch (\Exception $e) {
+            Log::error("FCM error (penitip): " . $e->getMessage());
+        }
+    }
+
+    return response()->json(['message' => 'Konfirmasi pengambilan berhasil.']);
+}
+
+
 
     public function transaksiGudang()
     {
@@ -1041,7 +1079,7 @@ class TransaksiController extends Controller
 
         $transaksi = Transaksi::with([
             'pembeli.alamat',
-            'detailtransaksi.barang.detailpenitipan.penitipan.pegawaiQc', // ✅ relasi QC
+            'detailtransaksi.barang.detailpenitipan.penitipan.pegawaiqc', // ✅ relasi QC
             'pegawai'
         ])->get();
 
