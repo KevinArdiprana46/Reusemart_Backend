@@ -23,9 +23,9 @@ use App\Http\Controllers\{
 
 
 //FCM TOKEN
-Route::post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
-Route::post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
-// Route::middleware('auth:sanctum')->post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
+// Route::post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
+Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
+Route::middleware('auth:sanctum')->post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
 
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
