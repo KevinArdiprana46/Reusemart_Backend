@@ -163,6 +163,7 @@ class TransaksiController extends Controller
                 'tanggal_pelunasan' => $trx->tanggal_pelunasan,
                 'poin_reward' => $trx->poin_reward,
                 'poin_digunakan' => $trx->poin_digunakan,
+                'created_at' => $trx->created_at,
                 'detail' => $trx->detailtransaksi->map(function ($d) {
                     return [
                         'id_barang' => $d->barang->id_barang,

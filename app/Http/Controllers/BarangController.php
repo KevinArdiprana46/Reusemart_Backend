@@ -22,12 +22,26 @@ class BarangController extends Controller
 
     public function show($id)
     {
-        $barang = Barang::with('foto_barang')->find($id);
+        $barang = Barang::with('foto_barang', 'detailpenitipan.penitipan.penitip')->find($id);
         if (!$barang) {
             return response()->json(['message' => 'Barang not found'], 404);
         }
         return response()->json($barang);
     }
+
+    public function getBarangRekomendasi()
+    {
+        $barang = Barang::with('foto_barang')
+            ->where('status_barang', 'tersedia') 
+            ->orderBy('id_barang', 'desc') 
+            ->limit(20)
+            ->get();
+
+        return response()->json([
+            'barang' => $barang,
+        ]);
+    }
+
 
     public function store(Request $request)
     {

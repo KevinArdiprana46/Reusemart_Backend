@@ -23,7 +23,9 @@ class PenitipanController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $penitipan = Penitipan::with(['penitip', 'barang'])->get();
+        $penitipan = Penitipan::with(['penitip', 'barang'])
+            ->orderBy('id_penitipan', 'desc')
+            ->get();
         return response()->json($penitipan);
     }
 
