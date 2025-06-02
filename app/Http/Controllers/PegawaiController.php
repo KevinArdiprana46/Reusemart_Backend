@@ -12,6 +12,24 @@ use App\Models\Transaksi;
 
 class PegawaiController extends Controller
 {
+    public function updateFcmTokenPegawai(Request $request)
+    {
+        $request->validate([
+            'fcm_token' => 'required|string',
+        ]);
+
+        $pegawai = auth()->user(); // ambil pembeli dari token login
+
+        if (!($pegawai instanceof \App\Models\Pegawai)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+
+        $pegawai->fcm_token = $request->fcm_token;
+        $pegawai->save();
+
+        return response()->json(['message' => 'Token updated']);
+    }
     public function index()
     {
         $pegawai = Pegawai::with(['jabatan', 'role'])->get();

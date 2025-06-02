@@ -25,6 +25,8 @@ use App\Http\Controllers\{
 //FCM TOKEN
 Route::middleware('auth:sanctum')->post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
+Route::middleware('auth:sanctum')->post('/update-fcm-token-pegawai', [PegawaiController::class, 'updateFcmTokenPegawai']);
+
 
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
@@ -122,6 +124,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/saldo/penitip', [TransaksiController::class, 'tambahSaldoPenitip']);
     // Poin
     Route::get('/poin/pembeli', [TransaksiController::class, 'tambahPoinPembeli']);
+    //Kirim barang oleh kurir
+    Route::post('/kurir/transaksi/kirim/{id_transaksi}', [TransaksiController::class, 'kirimBarang']);
+    Route::get('/kurir/transaksi', [TransaksiController::class, 'getTransaksiKurir']);
+
     // Proses final satu transaksi (opsional efisien)
     Route::post('/transaksi/proses-final/{id}', [TransaksiController::class, 'prosesFinalTransaksi']);
     Route::get('/nota/{id_transaksi}/pdf', [TransaksiController::class, 'generateNotaPDF']);

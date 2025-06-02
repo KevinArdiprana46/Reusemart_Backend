@@ -21,6 +21,30 @@ use Illuminate\Support\Facades\Log;
 
 class TransaksiController extends Controller
 {
+    public function getTransaksiKurir()
+    {
+        $pegawai = auth()->user();
+
+        if (!$pegawai || $pegawai->id_jabatan !== 2) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $transaksi = Transaksi::with([
+            'pembeli',
+            'detailTransaksi.barang.detailPenitipan.penitipan.penitip'
+        ])
+            ->where('id_pegawai', $pegawai->id_pegawai)
+            ->where('status_transaksi', 'dijadwalkan')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        
+
+        return response()->json([
+            'message' => 'Data transaksi berhasil diambil.',
+            'data' => $transaksi
+        ]);
+    }
 
     public function getTransaksiDibayar()
     {
@@ -164,6 +188,7 @@ class TransaksiController extends Controller
                 'tanggal_pelunasan' => $trx->tanggal_pelunasan,
                 'poin_reward' => $trx->poin_reward,
                 'poin_digunakan' => $trx->poin_digunakan,
+                'created_at' => $trx->created_at,
                 'detail' => $trx->detailtransaksi->map(function ($d) {
                     return [
                         'id_barang' => $d->barang->id_barang,
@@ -473,7 +498,7 @@ class TransaksiController extends Controller
         }
 
         $transaksi->id_pegawai = $kurir->id_pegawai;
-        $transaksi->status_transaksi = 'dikirim';
+        $transaksi->status_transaksi = 'dijadwalkan';
         $transaksi->save();
 
         $tokenList = [
@@ -498,6 +523,51 @@ class TransaksiController extends Controller
         ]);
     }
 
+    public function kirimBarang($id_transaksi)
+    {
+        $pegawai = auth()->user();
+
+        // 🔐 Hanya kurir (id_jabatan = 2)
+        if (!$pegawai || $pegawai->id_jabatan !== 2) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Ambil transaksi dan relasinya
+        $transaksi = Transaksi::with(['penitip', 'pembeli'])->find($id_transaksi);
+        if (!$transaksi) {
+            return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
+        }
+
+        // Optional: hanya transaksi tertentu yang boleh dikirim
+        if ($transaksi->status_transaksi !== 'dijadwalkan') {
+            return response()->json([
+                'message' => 'Transaksi belum dijadwalkan atau sudah dikirim.'
+            ], 422);
+        }
+
+        // Update status menjadi dikirim
+        $transaksi->status_transaksi = 'dikirim';
+        $transaksi->tanggal_dikirim = now(); // tambahkan field ini jika belum ada
+        $transaksi->save();
+
+        // Kirim notifikasi ke penitip dan pembeli
+        foreach ([$transaksi->penitip, $transaksi->pembeli] as $user) {
+            if ($user && $user->fcm_token) {
+                sendFCMWithJWT(
+                    $user->fcm_token,
+                    '📦 Barang Sedang Dikirim',
+                    'Barang kamu sedang dikirim oleh kurir Reusemart.'
+                );
+            }
+        }
+
+        return response()->json([
+            'message' => 'Barang berhasil ditandai sebagai sedang dikirim.',
+            'status_transaksi' => $transaksi->status_transaksi,
+        ]);
+    }
+
+
     public function jadwalkanAmbilSendiri($id_transaksi)
     {
         $pegawai = auth()->user();
@@ -510,24 +580,27 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
         }
 
-        if (strtolower($transaksi->jenis_pengiriman) !== 'pengambilan mandiri') {
+        if (strtolower($transaksi->jenis_pengiriman) !== 'ambil') {
             return response()->json(['message' => 'Jenis pengiriman bukan untuk ambil sendiri'], 422);
         }
 
         $transaksi->status_transaksi = 'selesai';
-        $transaksi->tanggal_pelunasan = now();
+        $transaksi->tanggal_pengambilan = now();
         $transaksi->save();
 
-        // Notifikasi email ke pembeli dan penitip
-        if ($transaksi->pembeli && $transaksi->pembeli->email) {
-            Mail::raw("Halo {$transaksi->pembeli->nama_lengkap},\n\nTransaksi {$transaksi->nomor_nota} telah dijadwalkan untuk pengambilan mandiri dan dianggap selesai.", function ($message) use ($transaksi) {
-                $message->to($transaksi->pembeli->email)->subject('📦 Barang Siap Diambil');
-            });
-        }
-        if ($transaksi->penitip && $transaksi->penitip->email) {
-            Mail::raw("Halo {$transaksi->penitip->nama_lengkap},\n\nBarang Anda telah dijadwalkan untuk diambil langsung oleh pembeli.", function ($message) use ($transaksi) {
-                $message->to($transaksi->penitip->email)->subject('📦 Barang Diambil Mandiri');
-            });
+        $tokenList = [
+            $transaksi->penitip->fcm_token ?? null,
+            $transaksi->pembeli->fcm_token ?? null,
+        ];
+
+        foreach ($tokenList as $token) {
+            if ($token) {
+                sendFCMWithJWT(
+                    $token,
+                    '📦 Jadwal Pengambilan',
+                    'Barang bisa diambil' . $transaksi->tanggal_pengambilan->translatedFormat('l, d F Y H:i') . 'Sampai Jam 8 Malam'
+                );
+            }
         }
 
         return response()->json([
