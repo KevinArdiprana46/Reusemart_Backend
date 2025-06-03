@@ -16,17 +16,20 @@ use Log;
 
 class PenitipanController extends Controller
 {
-    public function showAllPenitipan()
-    {
-        $pegawai = auth()->user();
+public function showAllPenitipan()
+{
+    $pegawai = auth()->user();
 
-        if (!$pegawai || $pegawai->id_jabatan !== 7) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $penitipan = Penitipan::with(['penitip', 'barang'])->get();
-        return response()->json($penitipan);
+    if (!$pegawai || $pegawai->id_jabatan !== 7) {
+        return response()->json(['message' => 'Unauthorized'], 403);
     }
+
+    $penitipanList = Penitipan::with(['penitip', 'barang'])
+        ->get();
+
+    return response()->json($penitipanList);
+}
+
 
     public function showDetailPenitipan($id)
     {
@@ -128,40 +131,42 @@ class PenitipanController extends Controller
 
 
 
-    public function searchBarangByNama(Request $request)
-    {
-        $penitip = Auth::user();
+public function searchBarangByNama(Request $request)
+{
+    $penitip = Auth::user();
 
-        if (!$penitip || !$penitip->id_penitip) {
-            return response()->json(['message' => 'Unauthorized'], 401);
-        }
-
-        $keyword = $request->query('q');
-
-        if (!$keyword) {
-            return response()->json(['message' => 'Parameter pencarian (q) wajib diisi.'], 400);
-        }
-
-        $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
-            ->where('id_penitip', $penitip->id_penitip)
-            ->whereHas('barang', function ($query) use ($keyword) {
-                $query->where(function ($subQuery) use ($keyword) {
-                    $subQuery->where('nama_barang', 'LIKE', '%' . $keyword . '%')
-                        ->orWhere('kategori_barang', 'LIKE', '%' . $keyword . '%')
-                        ->orWhere('deskripsi', 'LIKE', '%' . $keyword . '%')
-                        ->orWhere('harga_barang', 'LIKE', '%' . $keyword . '%');
-                });
-            })
-            ->get();
-        if ($penitipanList->isEmpty()) {
-            return response()->json([
-                'message' => 'Tidak ada barang ditemukan dengan nama tersebut.',
-                'kata_kunci' => $keyword
-            ], 404);
-        }
-
-        return response()->json($penitipanList);
+    if (!$penitip || !$penitip->id_penitip) {
+        return response()->json(['message' => 'Unauthorized'], 401);
     }
+
+    $keyword = $request->query('q');
+
+    if (!$keyword) {
+        return response()->json(['message' => 'Parameter pencarian (q) wajib diisi.'], 400);
+    }
+
+    $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
+        ->where('id_penitip', $penitip->id_penitip)
+        ->whereHas('detailpenitipan.barang', function ($query) use ($keyword) {
+            $query->where(function ($subQuery) use ($keyword) {
+                $subQuery->where('nama_barang', 'LIKE', '%' . $keyword . '%')
+                    ->orWhere('kategori_barang', 'LIKE', '%' . $keyword . '%')
+                    ->orWhere('deskripsi', 'LIKE', '%' . $keyword . '%')
+                    ->orWhere('harga_barang', 'LIKE', '%' . $keyword . '%');
+            });
+        })
+        ->get();
+
+    if ($penitipanList->isEmpty()) {
+        return response()->json([
+            'message' => 'Tidak ada barang ditemukan dengan nama tersebut.',
+            'kata_kunci' => $keyword
+        ], 404);
+    }
+
+    return response()->json($penitipanList);
+}
+
 
     public function perpanjangPenitipan($id)
     {
@@ -286,7 +291,7 @@ class PenitipanController extends Controller
             return response()->json(['message' => 'Barang sudah pernah diambil.'], 400);
         }
 
-        $penitipan->status_perpanjangan = 'diambil';
+        $penitipan->status_perpanjangan = 'diambil kembali';
         $penitipan->batas_pengambilan = now();
         $penitipan->save();
 

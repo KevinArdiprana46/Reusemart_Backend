@@ -437,7 +437,7 @@ public function konfirmasiAmbil($id_penitipan)
                     sendFCMWithJWT(
                         $pembeli->fcm_token,
                         'Barang Telah Diambil',
-                        'Barang yang Anda beli telah berhasil diambil.'
+                        'Barang yang Anda beli telah diambil.'
                     );
                 } catch (\Exception $e) {
                     Log::error("FCM error (pembeli): " . $e->getMessage());
@@ -452,7 +452,7 @@ public function konfirmasiAmbil($id_penitipan)
         try {
             sendFCMWithJWT(
                 $penitip->fcm_token,
-                'Barang Anda Terjual',
+                'Barang Anda Telah Terjual dan Sampai di Pembeli',
                 'Barang Anda telah berhasil diambil oleh pembeli.'
             );
         } catch (\Exception $e) {
@@ -471,7 +471,7 @@ public function konfirmasiAmbil($id_penitipan)
             'pembeli',
             'detailtransaksi.barang.foto_barang'
         ])
-            ->whereIn('status_transaksi', ['disiapkan', 'dikirim'])
+            ->whereIn('status_transaksi', ['disiapkan', 'dikirim','hangus', 'selesai'])
             ->orderBy('created_at', 'desc')
             ->get();
 
