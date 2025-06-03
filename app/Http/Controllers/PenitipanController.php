@@ -24,8 +24,10 @@ class PenitipanController extends Controller
         }
 
         $penitipan = Penitipan::with(['penitip', 'barang'])
+            ->whereHas('barang') // hanya ambil penitipan yang punya barang
             ->orderBy('id_penitipan', 'desc')
             ->get();
+
         return response()->json($penitipan);
     }
 
@@ -415,6 +417,61 @@ class PenitipanController extends Controller
         return response()->json([
             'message' => '✅ Test notifikasi H-3 & Hari-H dikirim',
             'total_dikirim' => $totalDikirim
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $penitipan = Penitipan::findOrFail($id);
+
+        foreach ($penitipan->detailpenitipan as $detail) {
+            // Hapus semua foto barang
+            foreach ($detail->barang->foto_barang as $foto) {
+                $foto->delete();
+            }
+
+            $detail->barang->delete();
+            $detail->delete();
+        }
+
+        $penitipan->delete();
+        return response()->json(['message' => 'Penitipan berhasil dihapus.']);
+    }
+
+    public function getPenitipanBaru()
+    {
+        $date = Carbon::now()->addDays(25);
+
+        $penitipan = Penitipan::with(['penitip', 'barang'])
+            ->whereHas('barang') // hanya ambil penitipan yang punya barang
+            ->whereDate('tanggal_akhir', '>=', $date)
+            ->orderBy('id_penitipan', 'desc')
+            ->get();
+
+        return response()->json($penitipan);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'tanggal_masuk' => 'required|date',
+            'tanggal_akhir' => 'required|date|after_or_equal:tanggal_masuk',
+            'id_qc' => 'required|exists:pegawai,id_pegawai',
+        ]);
+
+        $penitipan = Penitipan::find($id);
+        if (!$penitipan) {
+            return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
+        }
+
+        $penitipan->tanggal_masuk = $request->tanggal_masuk;
+        $penitipan->tanggal_akhir = $request->tanggal_akhir;
+        $penitipan->id_qc = $request->id_qc;
+        $penitipan->save();
+
+        return response()->json([
+            'message' => 'Data penitipan berhasil diperbarui.',
+            'data' => $penitipan
         ]);
     }
 }
