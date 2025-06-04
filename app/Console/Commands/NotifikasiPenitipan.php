@@ -24,28 +24,43 @@ class NotifikasiPenitipan extends Command
 
         $penitipNotified = [];
 
-        foreach ($jadwalNotif as $tanggal => $pesan) {
-            $details = DetailPenitipan::with('penitipan.penitip')
+        foreach ($jadwalNotif as $tanggal => $templatePesan) {
+            $details = DetailPenitipan::with(['penitipan.penitip', 'barang'])
                 ->whereHas('penitipan', function ($query) use ($tanggal) {
-                    $query->whereDate('tanggal_akhir', $tanggal); // ✅ AMAN
+                    $query->whereDate('tanggal_akhir', $tanggal);
                 })
-                ->get();
+                ->whereHas('barang', function ($q) {
+                    $q->where('status_barang', 'tersedia');
+                })
+                ->get()
+                ->groupBy(fn($d) => optional($d->penitipan)->id_penitip);
 
-            foreach ($details as $detail) {
-                $penitip = optional($detail->penitipan)->penitip;
+            foreach ($details as $id_penitip => $detailList) {
+                $penitip = optional($detailList->first()->penitipan)->penitip;
 
-                if ($penitip && $penitip->fcm_token && !in_array($penitip->id_penitip, $penitipNotified)) {
+                if ($penitip && $penitip->fcm_token) {
+                    $namaBarangList = $detailList
+                        ->map(fn($d) => optional($d->barang)->nama_barang)
+                        ->filter()
+                        ->implode(', ');
+
+                    $pesan = "Barang Anda berikut ini: {$namaBarangList}, " .
+                        ($tanggal === $h3
+                            ? 'akan habis masa penitipannya dalam 3 hari.'
+                            : 'hari ini adalah hari terakhir masa penitipannya.');
+
                     sendFCMWithJWT(
                         $penitip->fcm_token,
                         'Masa Penitipan Berakhir',
                         $pesan
                     );
 
-                    Log::info("📨 Notifikasi '{$pesan}' dikirim ke penitip ID {$penitip->id_penitip} (tanggal: $tanggal)");
-                    $penitipNotified[] = $penitip->id_penitip;
+                    Log::info("📨 Notifikasi '{$pesan}' dikirim ke penitip ID {$id_penitip} (tanggal: $tanggal)");
+                    $penitipNotified[] = $id_penitip;
                 }
             }
         }
+
 
         $this->info('✅ Notifikasi penitipan H-3 dan Hari-H dikirim. Total: ' . count($penitipNotified));
     }

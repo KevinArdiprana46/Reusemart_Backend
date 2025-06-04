@@ -157,7 +157,8 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::get('/show-detail/{id}', [PenitipanController::class, 'showDetailPenitipan']);
     Route::post('/store', [PenitipanController::class, 'storePenitipanBarang']);
     Route::get('/show', [PenitipanController::class, 'index']);
-
+    Route::put('/{id}', [PenitipanController::class, 'update']);
+    Route::delete('/{id}', [PenitipanController::class, 'destroy']);
     Route::post('/barang/{id_penitipan}', [BarangController::class, 'storeBarangDalamPenitipan']);
 
     Route::get('/laporan/penitipan/habis', [PenitipanController::class, 'laporanBarangHabis']);
@@ -172,9 +173,12 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
 
     Route::get('/test-notifikasi-penitip/{id_penitip}', [PenitipanController::class, 'testKirimNotifikasi']);
     Route::get('/test-notif-penitipan', [PenitipanController::class, 'testNotifikasiTanggal']);
+    Route::get('/get-penitipan-baru', [PenitipanController::class, 'getPenitipanBaru']);
 });
 
 // 📦 BARANG
+Route::get('/barang/rekomendasi', [BarangController::class, 'getBarangRekomendasi']);
+Route::get('/barang/search', [BarangController::class, 'index']);
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/', [BarangController::class, 'index']);
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori']);
@@ -193,7 +197,6 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/detail-barang/{id}', [BarangController::class, 'getDetailBarang']);
 });
-Route::get('/non/all', [BarangController::class, 'getAllBarangForPegawai']);
 
 //NonLogin
 Route::get('barang/{id}', [BarangController::class, 'show']);
