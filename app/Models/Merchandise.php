@@ -29,4 +29,9 @@ class Merchandise extends Model
     {
         return $this->hasMany(FotoMerchandise::class, 'id_merchandise');
     }
+
+    public function klaim()
+    {
+        return $this->hasMany(KlaimMerchandise::class, 'id_merchandise');
+    }
 }

@@ -31,8 +31,8 @@ class BarangController extends Controller
     public function getBarangRekomendasi()
     {
         $barang = Barang::with('foto_barang')
-            ->where('status_barang', 'tersedia') 
-            ->orderBy('id_barang', 'desc') 
+            ->where('status_barang', 'tersedia')
+            ->orderBy('id_barang', 'desc')
             ->limit(20)
             ->get();
 
@@ -40,6 +40,18 @@ class BarangController extends Controller
             'barang' => $barang,
         ]);
     }
+
+    public function getByKategori($kategori)
+    {
+        $barang = Barang::with('foto_barang')
+            ->where('kategori_barang', $kategori)
+            ->where('status_barang', 'tersedia')
+            ->get();
+
+        return response()->json(['barang' => $barang]);
+    }
+
+
 
 
     public function store(Request $request)
@@ -171,44 +183,44 @@ class BarangController extends Controller
         return response()->json($barang);
     }
 
-public function getBarangByKategori($kategori)
-{
-    $penitip = Auth::user();
+    public function getBarangByKategori($kategori)
+    {
+        $penitip = Auth::user();
 
-    if (!$penitip || !$penitip->id_penitip) {
-        return response()->json(['message' => 'Unauthorized'], 401);
-    }
+        if (!$penitip || !$penitip->id_penitip) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
 
-    $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
-        ->where('id_penitip', $penitip->id_penitip)
-        ->whereHas('detailpenitipan.barang', function ($query) use ($kategori) {
-            $query->whereRaw('LOWER(TRIM(kategori_barang)) = ?', [strtolower(trim($kategori))]);
-        })
-        ->get();
+        $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
+            ->where('id_penitip', $penitip->id_penitip)
+            ->whereHas('detailpenitipan.barang', function ($query) use ($kategori) {
+                $query->whereRaw('LOWER(TRIM(kategori_barang)) = ?', [strtolower(trim($kategori))]);
+            })
+            ->get();
 
-    $barangList = [];
+        $barangList = [];
 
-    foreach ($penitipanList as $penitipan) {
-        foreach ($penitipan->detailpenitipan as $detail) {
-            if (
-                strtolower(trim($detail->barang->kategori_barang)) === strtolower(trim($kategori))
-            ) {
-                $barang = $detail->barang;
-                $barang->id_penitipan = $penitipan->id_penitipan; // Tambahkan informasi penitipan
-                $barangList[] = $barang;
+        foreach ($penitipanList as $penitipan) {
+            foreach ($penitipan->detailpenitipan as $detail) {
+                if (
+                    strtolower(trim($detail->barang->kategori_barang)) === strtolower(trim($kategori))
+                ) {
+                    $barang = $detail->barang;
+                    $barang->id_penitipan = $penitipan->id_penitipan; // Tambahkan informasi penitipan
+                    $barangList[] = $barang;
+                }
             }
         }
-    }
 
-    if (empty($barangList)) {
-        return response()->json([
-            'message' => 'Tidak ada barang ditemukan untuk kategori ini.',
-            'kategori_yang_dicari' => $kategori
-        ], 404);
-    }
+        if (empty($barangList)) {
+            return response()->json([
+                'message' => 'Tidak ada barang ditemukan untuk kategori ini.',
+                'kategori_yang_dicari' => $kategori
+            ], 404);
+        }
 
-    return response()->json($barangList);
-}
+        return response()->json($barangList);
+    }
 
     public function showNon($id)
     {

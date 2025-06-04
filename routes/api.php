@@ -178,7 +178,9 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
 
 // 📦 BARANG
 Route::get('/barang/rekomendasi', [BarangController::class, 'getBarangRekomendasi']);
+Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori']);
 Route::get('/barang/search', [BarangController::class, 'index']);
+Route::get('/detail-barang/{id}', [BarangController::class, 'getDetailBarang']);
 Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/', [BarangController::class, 'index']);
     Route::get('/kategori/{kategori}', [BarangController::class, 'getByKategori']);
@@ -186,14 +188,11 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::post('/update/{id}', [BarangController::class, 'update']);
     Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/all', [BarangController::class, 'getAllBarangForPegawai']);
-    Route::get('/{id}', [BarangController::class, 'show']);
+    // Route::get('/{id}', [BarangController::class, 'show']);
     Route::post('/upload-foto/{id}', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/terjual', [BarangController::class, 'getBarangTerjual']);
-
-
     Route::put('/rating/{id}', [BarangController::class, 'beriRatingBarang']);
     Route::get('/hitung-rating/{id}', [BarangController::class, 'hitungRatingPenitip']);
-
     // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/detail-barang/{id}', [BarangController::class, 'getDetailBarang']);
 });
