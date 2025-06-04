@@ -18,7 +18,8 @@ use App\Http\Controllers\{
     LaporanController,
     UserController,
     DiskusiController,
-    KeranjangController
+    KeranjangController,
+    MerchandiseController,
 };
 
 
@@ -215,4 +216,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/keranjang/hapus/{id}', [KeranjangController::class, 'hapus']);
     Route::get('/keranjang', [KeranjangController::class, 'index']);
     Route::get('/keranjang/count', [KeranjangController::class, 'getCount']);
+});
+
+//Merchandise
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/merchandise/tambah', [MerchandiseController::class, 'store']);
+    Route::get('/merchandise', [MerchandiseController::class, 'index']);
+    Route::post('/merchandise/{id}/upload-foto', [MerchandiseController::class, 'uploadFotoMerchandise']);
+
 });
