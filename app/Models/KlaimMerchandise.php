@@ -14,6 +14,8 @@ class KlaimMerchandise extends Model
         'id_merchandise',
         'id_pembeli',
         'tanggal_klaim',
+        'status',
+        'tanggal_ambil',
     ];
 
     public function merchandise()

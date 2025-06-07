@@ -225,5 +225,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/merchandise/tambah', [MerchandiseController::class, 'store']);
     Route::get('/merchandise', [MerchandiseController::class, 'index']);
     Route::post('/merchandise/{id}/upload-foto', [MerchandiseController::class, 'uploadFotoMerchandise']);
-
+    Route::get('/merchandise/klaim', [MerchandiseController::class, 'listKlaim']);
+    Route::post('/merchandise/klaim', [MerchandiseController::class, 'klaimMerchandise']);
+    Route::put('/merchandise/klaim/tanggal-ambil/{id}', [MerchandiseController::class, 'isiTanggalAmbil']);
 });
