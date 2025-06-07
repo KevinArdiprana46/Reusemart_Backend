@@ -63,48 +63,56 @@ class MerchandiseController extends Controller
         ]);
     }
 
+    public function listKlaim()
+    {
+        $user = auth()->user();
+        if ($user->id_jabatan != 3) {
+            return response()->json(['message' => 'Hanya CS yang dapat mengakses fitur ini.'], 403);
+        }
+
+        $klaim = KlaimMerchandise::with(['pembeli', 'merchandise'])->get();
+        return response()->json($klaim);
+    }
+
+
     public function klaimMerchandise(Request $request)
     {
-        // Validasi input
         $request->validate([
-            'id_merchandise' => 'required|exists:merchandise,id_merchandise', // Validasi id_merchandise
+            'id_merchandise' => 'required|exists:merchandise,id_merchandise',
         ]);
 
-        // Ambil data pembeli yang sedang login
-        $pembeli = Auth::user();
+        $pembeli = Auth::user(); // diasumsikan pembeli sudah login sebagai guard default
+        if ($pembeli->id_role != 2) {
+            return response()->json(['message' => 'Hanya pembeli yang dapat menukarkan merchandise.'], 403);
+        }
 
-        // 1. Ambil merchandise yang akan diklaim
         $merchandise = Merchandise::findOrFail($request->id_merchandise);
+        $poinDibutuhkan = $merchandise->poin_penukaran;
 
-        // 2. Hitung poin yang dibutuhkan untuk klaim merchandise (misalnya, 1 poin = 10.000 dari harga barang)
-        $poinDibutuhkan = $merchandise->harga_barang / 10000; // Asumsikan harga barang diukur dengan kelipatan 10.000
-
-        // 3. Cek apakah pembeli memiliki poin yang cukup
         if ($pembeli->poin_sosial < $poinDibutuhkan) {
             return response()->json(['message' => 'Poin tidak cukup untuk klaim merchandise.'], 400);
         }
 
-        // 4. Kurangi poin pembeli
-        $pembeli->poin_sosial -= $poinDibutuhkan;
-        $pembeli->save();
-
-        // 5. Cek apakah stok merchandise cukup
-        if ($merchandise->stock <= 0) {
+        if ($merchandise->stock < 1) {
             return response()->json(['message' => 'Merchandise sudah habis stoknya.'], 400);
         }
 
-        // 6. Kurangi stok merchandise
+        // Kurangi poin dan stok
+        $pembeli->poin_sosial -= $poinDibutuhkan;
+        $pembeli->save();
+
         $merchandise->stock -= 1;
         $merchandise->save();
 
-        // 7. Simpan klaim ke tabel klaim_merchandise
+        // Simpan klaim
         $klaim = KlaimMerchandise::create([
-            'id_merchandise' => $merchandise->id,
-            'id_pembeli' => $pembeli->id,
+            'id_merchandise' => $merchandise->id_merchandise,
+            'id_pembeli' => $pembeli->id_pembeli,
             'tanggal_klaim' => Carbon::now(),
+            'status' => 'belum diambil',
+            'tanggal_ambil' => null,
         ]);
 
-        // 8. Response sukses
         return response()->json([
             'message' => 'Merchandise berhasil diklaim.',
             'sisa_stok' => $merchandise->stock,
@@ -113,5 +121,28 @@ class MerchandiseController extends Controller
         ]);
     }
 
+    public function isiTanggalAmbil(Request $request, $id)
+    {
+        $user = auth()->user();
+        if ($user->id_jabatan != 3) {
+            return response()->json(['message' => 'Hanya CS yang dapat mengakses fitur ini.'], 403);
+        }
 
+        $request->validate([
+            'tanggal_ambil' => 'required|date',
+        ]);
+
+        $klaim = KlaimMerchandise::findOrFail($id);
+
+        if ($klaim->status === 'sudah diambil') {
+            return response()->json(['message' => 'Merchandise sudah diambil.'], 400);
+        }
+
+        $klaim->update([
+            'tanggal_ambil' => $request->tanggal_ambil,
+            'status' => 'sudah diambil',
+        ]);
+
+        return response()->json(['message' => 'Tanggal ambil berhasil disimpan.']);
+    }
 }
