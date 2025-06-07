@@ -16,15 +16,16 @@ class MerchandiseController extends Controller
     {
         $request->validate([
             'nama_merchandise' => 'required|string|max:255',
-            'kategori' => 'required|string|max:100',
+            'poin_penukaran' => 'required|integer|min:0',
             'stock' => 'nullable|integer|min:1',
         ]);
 
         $pegawai = Auth::user();
+
         $merchandise = Merchandise::create([
             'id_pegawai' => $pegawai->id_pegawai,
             'nama_merchandise' => $request->nama_merchandise,
-            'kategori' => $request->kategori,
+            'poin_penukaran' => $request->poin_penukaran,
             'stock' => $request->stock,
         ]);
 
@@ -33,6 +34,7 @@ class MerchandiseController extends Controller
             'data' => $merchandise->load('pegawai')
         ]);
     }
+
 
     public function uploadFotoMerchandise(Request $request, $id)
     {
