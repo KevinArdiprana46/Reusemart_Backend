@@ -215,14 +215,18 @@ class PegawaiController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $history = Transaksi::with(['detailTransaksi.barang.detailpenitipan.penitipan.penitip'])
+        $history = Transaksi::with([
+            'detailTransaksi.barang.foto_barang',
+            'detailTransaksi.barang.detailpenitipan.penitipan.penitip'
+        ])
             ->where('status_transaksi', 'selesai')
             ->get()
             ->flatMap(function ($transaksi) use ($user) {
                 return $transaksi->detailTransaksi
                     ->filter(function ($detail) use ($user) {
                         return $detail->barang &&
-                            $detail->barang->id_pegawai === $user->id_pegawai;
+                            $detail->barang->id_pegawai === $user->id_pegawai &&
+                            strtolower($detail->barang->status_barang) === 'terjual';
                     })
                     ->map(function ($detail) use ($transaksi) {
                         $barang = $detail->barang;
@@ -232,11 +236,12 @@ class PegawaiController extends Controller
                         return [
                             'id_transaksi' => $transaksi->id_transaksi,
                             'tanggal' => $transaksi->tanggal_pelunasan,
+                            'nama_barang' => $barang->nama_barang ?? '-',
+                            'harga_barang' => $harga,
                             'nama_penitip' => $penitipan?->penitip?->nama_lengkap ?? '-',
-                            'komisi' => $harga * 0.1, // 10% komisi
+                            'komisi' => round($harga * 0.05),
                         ];
                     });
-
             });
 
         return response()->json([
@@ -249,51 +254,60 @@ class PegawaiController extends Controller
             'alamat' => $user->alamat,
             'no_telepon' => $user->no_telepon,
             'gender' => $user->gender,
-            'komisi_history' => $history,
+            'komisi_history' => $history->values(), // reset key index
         ]);
     }
 
-public function getDetailKomisiHunter($id_transaksi)
-{
-    $user = Auth::user();
 
-    if (!$user || $user->id_jabatan != 5) {
-        return response()->json(['message' => 'Unauthorized'], 403);
-    }
+    public function getDetailKomisiHunter($id_transaksi)
+    {
+        $user = Auth::user();
 
-    $transaksi = Transaksi::with([
-        'pembeli',
-        'detailTransaksi.barang.foto_barang', // perhatikan ini
-        'detailTransaksi.barang.detailpenitipan.penitipan.penitip'
-    ])->findOrFail($id_transaksi);
-
-    $detail = [];
-
-    foreach ($transaksi->detailTransaksi as $dt) {
-        $barang = $dt->barang;
-
-        if ($barang && $barang->id_pegawai == $user->id_pegawai) {
-            $foto = $barang->foto_barang->first()?->foto_barang;
-            $detail[] = [
-                'nama_barang'   => $barang->nama_barang ?? '-',
-                'harga_barang'  => $barang->harga_barang ?? 0,
-                'kategori'      => $barang->kategori_barang ?? '-',
-                'penitip'       => optional($barang->detailpenitipan->penitipan->penitip)->nama_lengkap ?? '-',
-                'foto_barang'   => $foto ? asset('storage/' . $foto) : null,
-                'komisi'        => ($barang->harga_barang ?? 0) * 0.1,
-            ];
+        if (!$user || $user->id_jabatan != 5) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
+
+        $transaksi = Transaksi::with([
+            'pembeli',
+            'detailTransaksi.barang.foto_barang',
+            'detailTransaksi.barang.detailpenitipan.penitipan.penitip'
+        ])->findOrFail($id_transaksi);
+
+        $detail = [];
+
+        foreach ($transaksi->detailTransaksi as $dt) {
+            $barang = $dt->barang;
+
+            // Hitung hanya jika: barang dimasukkan oleh pegawai hunter, dan barang sudah terjual
+            if (
+                $barang &&
+                $barang->id_pegawai == $user->id_pegawai &&
+                strtolower($barang->status_barang) === 'terjual'
+            ) {
+                $foto = $barang->foto_barang->first()?->foto_barang;
+                $penitip = optional($barang->detailpenitipan->penitipan->penitip);
+
+                $detail[] = [
+                    'nama_barang' => $barang->nama_barang ?? '-',
+                    'harga_barang' => $barang->harga_barang ?? 0,
+                    'kategori' => $barang->kategori_barang ?? '-',
+                    'penitip' => $penitip->nama_lengkap ?? '-',
+                    'foto_barang' => $foto ? asset('storage/' . $foto) : null,
+                    'komisi' => round(($barang->harga_barang ?? 0) * 0.05), // 5% komisi
+                ];
+            }
+        }
+
+        return response()->json([
+            'id_transaksi' => $transaksi->id_transaksi,
+            'tanggal' => $transaksi->tanggal_pelunasan,
+            'total_harga' => $transaksi->total_harga,
+            'status' => $transaksi->status_transaksi,
+            'pembeli' => optional($transaksi->pembeli)->nama_lengkap ?? '-',
+            'detail_komisi' => $detail
+        ]);
     }
 
-    return response()->json([
-        'id_transaksi'   => $transaksi->id_transaksi,
-        'tanggal'        => $transaksi->tanggal_pelunasan,
-        'total_harga'    => $transaksi->total_harga,
-        'status'         => $transaksi->status_transaksi,
-        'pembeli'        => optional($transaksi->pembeli)->nama_lengkap ?? '-',
-        'detail_komisi'  => $detail
-    ]);
-}
 
 
 
