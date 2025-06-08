@@ -958,10 +958,9 @@ class TransaksiController extends Controller
             $transaksi->komisi_reusemart = $totalKomisi;
             $transaksi->save();
         }
-
         // 3. Komisi Penitip
         $penitip = $transaksi->penitip;
-        if ($penitip && ($penitip->komisi == 0 && $penitip->bonus == 0)) {
+        if ($penitip) {
             foreach ($penitip->penitipan ?? [] as $p) {
                 foreach ($p->barang ?? [] as $barang) {
                     if (in_array(strtolower($barang->status_barang), ['terjual', 'sold out'])) {
@@ -980,18 +979,18 @@ class TransaksiController extends Controller
                         $bonus = $selisihHari < 7 ? 0.1 * $nilaiKomisi : 0;
                         $komisiPenitip = $barang->harga_barang - $nilaiKomisi + $bonus;
 
-                        $penitip->komisi += $komisiPenitip;
-                        $penitip->bonus += $bonus;
+                        $penitip->saldo += $komisiPenitip;
 
-                        Log::info("✅ Komisi penitip Rp{$komisiPenitip} + bonus Rp{$bonus} diberikan ke {$penitip->nama_lengkap}");
+                        Log::info("✅ Komisi penitip Rp{$komisiPenitip} (termasuk bonus Rp{$bonus}) ditambahkan ke saldo {$penitip->nama_lengkap}");
                     }
                 }
             }
             $penitip->save();
         }
 
+
         // 4. Tambah Saldo Penitip
-        if ($penitip && $penitip->saldo == 0) {
+        if ($penitip) {
             $totalSaldo = 0;
             foreach ($penitip->penitipan ?? [] as $p) {
                 foreach ($p->barang ?? [] as $barang) {
