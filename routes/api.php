@@ -26,6 +26,7 @@ use App\Models\Transaksi;
 //FCM TOKEN
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
 Route::middleware('auth:sanctum')->post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
+Route:: middleware('auth:sanctum')->post('/update-fcm-token-pegawai', [PegawaiController::class, 'updateFcmTokenPegawai']);
 
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
@@ -142,6 +143,8 @@ Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PegawaiController::class, 'index']);
     Route::get('/daftar', [PegawaiController::class, 'getDaftarPegawai']);
     Route::get('/hunter', [PegawaiController::class, 'getHunter']);
+    Route::get('/hunter/komisi', [PegawaiController::class, 'showDetailHunterWithKomisiHistory']);
+    Route::get('/hunter/komisi/{id_transaksi}', [PegawaiController::class, 'getDetailKomisiHunter']);
     Route::get('/qc', [PegawaiController::class, 'getQc']);
     Route::post('/store', [PegawaiController::class, 'store']);
     Route::post('/update/{id}', [PegawaiController::class, 'update']);
