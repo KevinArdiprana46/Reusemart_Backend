@@ -114,29 +114,40 @@ class LaporanController extends Controller
         ]);
     }
 
-    public function barangPenitipanHabis()
+    public function barangPenitipanHabis(Request $request)
     {
         $today = Carbon::today();
 
-        $penitipanHabis = Penitipan::with(['barang', 'penitip'])
-            ->whereDate('tanggal_akhir', '<', $today)
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'kode_produk' => $item->barang ? 'P' . $item->barang->id_barang : '-',
-                    'nama_produk' => $item->barang->nama_barang ?? '-',
-                    'id_penitip' => $item->penitip ? 'T' . $item->penitip->id_penitip : '-',
-                    'nama_penitip' => $item->penitip->nama_lengkap ?? '-',
-                    'tanggal_masuk' => $item->tanggal_masuk,
-                    'tanggal_akhir' => $item->tanggal_akhir,
-                    'batas_ambil' => $item->batas_pengambilan,
-                ];
-            });
+        $bulan = $request->query('bulan');
+        $tahun = $request->query('tahun');
+
+        $query = Penitipan::with(['barang', 'penitip'])
+            ->whereDate('tanggal_akhir', '<', $today);
+
+        if ($bulan && $tahun) {
+            $query->whereMonth('tanggal_akhir', $bulan)
+                ->whereYear('tanggal_akhir', $tahun);
+        } elseif ($tahun) {
+            $query->whereYear('tanggal_akhir', $tahun);
+        }
+
+        $penitipanHabis = $query->get()->map(function ($item) {
+            return [
+                'id_barang' => $item->barang ? 'P' . $item->barang->id_barang : '-',
+                'nama_produk' => $item->barang->nama_barang ?? '-',
+                'id_penitip' => $item->penitip ? 'T' . $item->penitip->id_penitip : '-',
+                'nama_penitip' => $item->penitip->nama_lengkap ?? '-',
+                'tanggal_masuk' => $item->tanggal_masuk,
+                'tanggal_akhir' => $item->tanggal_akhir,
+                'batas_ambil' => $item->batas_pengambilan,
+            ];
+        });
 
         return response()->json([
             'data' => $penitipanHabis,
             'tanggal_cetak' => now()->format('Y-m-d H:i:s'),
         ]);
     }
+
 
 }
