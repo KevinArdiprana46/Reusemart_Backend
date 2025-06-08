@@ -21,7 +21,7 @@ use App\Http\Controllers\{
     KeranjangController,
     MerchandiseController,
 };
-
+use App\Models\Transaksi;
 
 //FCM TOKEN
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
@@ -127,6 +127,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transaksi/proses-final/{id}', [TransaksiController::class, 'prosesFinalTransaksi']);
     Route::get('/nota/{id_transaksi}/pdf', [TransaksiController::class, 'generateNotaPDF']);
     Route::get('/transaksi/semua', [TransaksiController::class, 'semuaTransaksi']);
+    Route::get('/transaksi/laporan-komisi', [TransaksiController::class, 'laporanKomisiBulanan']);
 });
 
 //Laporan
@@ -195,6 +196,7 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/hitung-rating/{id}', [BarangController::class, 'hitungRatingPenitip']);
     // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/detail-barang/{id}', [BarangController::class, 'getDetailBarang']);
+    Route::get('/laporan/stok-gudang', [BarangController::class, 'stokGudang']);
 });
 
 //NonLogin

@@ -16,7 +16,7 @@ class Merchandise extends Model
         'id_merchandise',
         'id_pegawai',
         'nama_merchandise',
-        'kategori',
+        'poin_penukaran',
         'stock',
     ];
 
