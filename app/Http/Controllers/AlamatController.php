@@ -123,5 +123,18 @@ class AlamatController extends Controller
         return response()->json(['message' => 'Alamat berhasil dijadikan utama']);
     }
 
+    public function getAlamatUtama($id)
+    {
+        $alamat = Alamat::where('id_pembeli', $id)
+            ->where('utama', true)
+            ->first();
 
+        if (!$alamat) {
+            return response()->json([
+                'message' => 'Alamat utama tidak ditemukan'
+            ], 404);
+        }
+
+        return response()->json($alamat);
+    }
 }

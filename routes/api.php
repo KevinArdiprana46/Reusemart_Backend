@@ -26,7 +26,7 @@ use App\Models\Transaksi;
 //FCM TOKEN
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
 Route::middleware('auth:sanctum')->post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
-Route:: middleware('auth:sanctum')->post('/update-fcm-token-pegawai', [PegawaiController::class, 'updateFcmTokenPegawai']);
+Route::middleware('auth:sanctum')->post('/update-fcm-token-pegawai', [PegawaiController::class, 'updateFcmTokenPegawai']);
 
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
@@ -36,6 +36,7 @@ Route::post('/password/email', [ResetPasswordController::class, 'sendResetLinkEm
 Route::post('/password/reset', [ResetPasswordController::class, 'reset']);
 
 // 👤 PEMBELI
+Route::get('/pembeli/{id}/alamat-utama', [AlamatController::class, 'getAlamatUtama']);
 Route::prefix('pembeli')->middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [PembeliController::class, 'profile']);
     Route::post('/update', [PembeliController::class, 'update']);
@@ -178,6 +179,7 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::get('/test-notifikasi-penitip/{id_penitip}', [PenitipanController::class, 'testKirimNotifikasi']);
     Route::get('/test-notif-penitipan', [PenitipanController::class, 'testNotifikasiTanggal']);
     Route::get('/get-penitipan-baru', [PenitipanController::class, 'getPenitipanBaru']);
+    Route::get('/riwayat-penitipan', [PenitipanController::class,'riwayatPenitipan']);
 });
 
 // 📦 BARANG

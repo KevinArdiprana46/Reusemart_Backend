@@ -103,6 +103,15 @@ class PenitipController extends Controller
         ], 201);
     }
 
+    public function show($id)
+    {
+        $penitip = Penitip::find($id);
+        if (!$penitip) {
+            return response()->json(['message' => 'Penitip tidak ditemukan.'], 404);
+        }
+        return response()->json($penitip);
+    }
+
     // ✅ Profile Penitip
     public function profile(Request $request)
     {
@@ -244,7 +253,7 @@ class PenitipController extends Controller
 
         return response()->json($barang);
     }
-    
+
     public function getAllPenitip()
     {
         $penitip = Penitip::select('id_penitip', 'nama_lengkap')->get();
