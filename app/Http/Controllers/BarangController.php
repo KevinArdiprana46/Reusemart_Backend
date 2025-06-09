@@ -416,7 +416,6 @@ class BarangController extends Controller
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal menyimpan barang.', 'error' => $e->getMessage()], 500);
-            \Log::error("❌ Gagal store barang", ['exception' => $e]);
         }
     }
 }

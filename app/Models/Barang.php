@@ -53,7 +53,7 @@ class Barang extends Model
 
     public function detailPenitipan()
     {
-        return $this->hasMany(DetailPenitipan::class, 'id_barang');
+        return $this->hasOne(DetailPenitipan::class, 'id_barang');
     }
 
     public function detailTransaksi()

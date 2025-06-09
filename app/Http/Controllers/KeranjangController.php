@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Keranjang;
 use Illuminate\Support\Facades\Log;
+use App\Models\Barang;
 
 class KeranjangController extends Controller
 {
@@ -17,7 +18,17 @@ class KeranjangController extends Controller
 
         $id_pembeli = auth()->user()->id_pembeli;
 
-        // Cari apakah barang sudah ada di keranjang
+        // Ambil data barang dulu
+        $barang = Barang::find($request->id_barang);
+
+        // Cek apakah barang sudah sold out dan stok 0
+        if ($barang->status_barang === 'sold out' && $barang->stock == 0) {
+            return response()->json([
+                'message' => 'Barang sudah habis dan tidak bisa ditambahkan ke keranjang.'
+            ], 400);
+        }
+
+        // Cek apakah barang sudah ada di keranjang
         $keranjang = Keranjang::where('id_pembeli', $id_pembeli)
             ->where('id_barang', $request->id_barang)
             ->first();
@@ -33,11 +44,9 @@ class KeranjangController extends Controller
             ]);
         }
 
-        $keranjang = Keranjang::with('barang')->find($keranjang->id);
-
         return response()->json([
-            'message' => 'Barang ditambahkan ke keranjang',
-            'data' => $keranjang
+            'message' => 'Barang berhasil ditambahkan ke keranjang.',
+            'keranjang' => $keranjang
         ]);
     }
 

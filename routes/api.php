@@ -127,6 +127,9 @@ Route::middleware('auth:sanctum')->group(function () {
     //Kirim barang oleh kurir
     Route::post('/kurir/transaksi/kirim/{id_transaksi}', [TransaksiController::class, 'kirimBarang']);
     Route::get('/kurir/transaksi', [TransaksiController::class, 'getTransaksiKurir']);
+    Route::get('/kurir/transaksi/dikirim', [TransaksiController::class, 'pengirimanDikirim']);
+    Route::post('/kurir/transaksi/diterima/{id}', [TransaksiController::class, 'diterimaOlehKurir']);
+    Route::get('/kurir/transaksi/history', [TransaksiController::class, 'getHistoryKurir']);
 
     // Proses final satu transaksi (opsional efisien)
     Route::post('/transaksi/proses-final/{id}', [TransaksiController::class, 'prosesFinalTransaksi']);
@@ -139,6 +142,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/laporan/kategori-barang', [LaporanController::class, 'laporanPenjualanKategori']);
     Route::get('/laporan/barang-penitipan-habis', [LaporanController::class, 'barangPenitipanHabis']);
     Route::get('/laporan/penjualan-bulanan', [LaporanController::class, 'laporanPenjualanBulanan']);
+    Route::get('/donasi/laporan/barang', [LaporanController::class, 'laporanDonasiBarang']);
+    Route::get('/donasi/request/laporan', [LaporanController::class, 'laporanRequestDonasi']);
 });
 
 // 👷‍♂️ PEGAWAI

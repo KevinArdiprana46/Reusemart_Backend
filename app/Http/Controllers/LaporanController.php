@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Organisasi;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use App\Models\Penitipan;
+use App\Models\Donasi;
 use Auth;
 
 class LaporanController extends Controller
@@ -139,4 +141,42 @@ class LaporanController extends Controller
         ]);
     }
 
+    public function laporanDonasiBarang()
+    {
+        $data = Donasi::with([
+            'barang.detailPenitipan.penitipan.penitip',
+            'organisasi',
+        ])->get();
+
+        $laporan = $data->map(function ($item) {
+            return [
+                'kode_produk' => 'K' . str_pad($item->id_barang, 2, STR_PAD_LEFT),
+                'nama_produk' => $item->barang->nama_barang ?? '-',
+                'id_penitip' => 'T' . str_pad($item->barang->detailPenitipan->penitipan->penitip->id_penitip ?? null, STR_PAD_LEFT),
+                'nama_penitip' => $item->barang->detailPenitipan->penitipan->penitip->nama_lengkap ?? '-',
+                'tanggal_donasi' => Carbon::parse($item->tanggal_donasi)->format('d/m/Y'),
+                'organisasi' => $item->organisasi->nama_organisasi ?? '-',
+                'nama_penerima' => $item->organisasi->nama_penerima ?? '-',
+            ];
+        });
+
+        return response()->json([
+            'message' => 'Laporan donasi barang berhasil diambil.',
+            'data' => $laporan,
+            'tanggal_cetak' => now()->toDateString(),
+        ]);
+    }
+
+    public function laporanRequestDonasi()
+    {
+        $data = Donasi::with('organisasi')
+            ->where('status_donasi', 'diminta')
+            ->get();
+
+        return response()->json([
+            'message' => 'Laporan request donasi berhasil diambil.',
+            'data' => $data,
+            'tanggal_cetak' => now()->toDateString(),
+        ]);
+    }
 }

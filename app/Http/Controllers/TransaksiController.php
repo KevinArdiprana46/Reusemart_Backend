@@ -34,11 +34,36 @@ class TransaksiController extends Controller
             'detailTransaksi.barang.detailPenitipan.penitipan.penitip'
         ])
             ->where('id_pegawai', $pegawai->id_pegawai)
-            ->where('status_transaksi', 'dijadwalkan')
+            ->where('status_transaksi', 'belum selesai')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        
+
+
+        return response()->json([
+            'message' => 'Data transaksi berhasil diambil.',
+            'data' => $transaksi
+        ]);
+    }
+
+    public function getHistoryKurir()
+    {
+        $pegawai = auth()->user();
+
+        if (!$pegawai || $pegawai->id_jabatan !== 2) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $transaksi = Transaksi::with([
+            'pembeli',
+            'detailTransaksi.barang.detailPenitipan.penitipan.penitip'
+        ])
+            ->where('id_pegawai', $pegawai->id_pegawai)
+            ->where('status_transaksi', 'selesai')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+
 
         return response()->json([
             'message' => 'Data transaksi berhasil diambil.',
@@ -111,18 +136,19 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak valid untuk diverifikasi.'], 400);
         }
 
-        // Update status transaksi
         $transaksi->status_transaksi = 'disiapkan';
         $transaksi->tanggal_pelunasan = now();
         $transaksi->save();
 
-        // 🔁 Kirim notifikasi ke seluruh penitip unik
         $notifiedPenitipIds = [];
+        Log::info(message: "sampai sini");
 
         foreach ($transaksi->detailTransaksi as $detail) {
+
+            Log::info(message: "sampai sini2");
             $barang = $detail->barang;
             $detailPenitipanList = $barang->detailPenitipan ?? [];
-
+            Log::info("$barang");
             foreach ($detailPenitipanList as $detailPenitipan) {
                 $penitipan = $detailPenitipan->penitipan;
                 $penitip = $penitipan?->penitip;
@@ -341,7 +367,7 @@ class TransaksiController extends Controller
         // Hitung total
         $subtotal = $keranjangs->sum(fn($item) => $item->barang->harga_barang * $item->jumlah);
         $ongkir = $request->metode_pengiriman === 'kurir' && $subtotal < 1500000 ? 100000 : 0;
-        $potongan = min($request->poin_ditukar, $pembeli->poin_sosial ?? 0) * 10000;
+        $potongan = min($request->poin_ditukar, $pembeli->poin_sosial ?? 0) * 100;
         $totalAkhir = $subtotal + $ongkir - $potongan;
 
         // Hitung poin
@@ -365,19 +391,19 @@ class TransaksiController extends Controller
 
         // Tambahkan detail transaksi
         foreach ($keranjangs as $item) {
+            $barang = $item->barang;
+            \Log::info("Checkout Barang - ID: {$barang->id_barang}, Nama: {$barang->nama_barang}, Stok Sebelum: {$barang->stock}, Jumlah Dibeli: {$item->jumlah}");
             DetailTransaksi::create([
                 'id_transaksi' => $transaksi->id_transaksi,
                 'id_barang' => $item->barang->id_barang,
                 'jumlah' => $item->jumlah,
             ]);
 
-            $barang = $item->barang;
-            $barang->stock -= $item->jumlah;
-            if ($barang->stock <= 0) {
-                $barang->stock = 0;
-                $barang->status_barang = 'sold out';
-            }
+            $barang->stock = 0;
+            $barang->status_barang = 'sold out';
+
             $barang->save();
+            \Log::info("Barang Setelah Update - ID: {$barang->id_barang}, Stok Sekarang: {$barang->stock}, Status: {$barang->status_barang}");
         }
 
         // Update poin pembeli
@@ -413,6 +439,7 @@ class TransaksiController extends Controller
 
         $transaksi->bukti_pembayaran = $filename;
         $transaksi->status_transaksi = 'dibayar';
+        $transaksi->status_pengiriman = 'belum dijadwalkan';
         $transaksi->tanggal_pelunasan = now();
         $transaksi->save();
 
@@ -459,7 +486,9 @@ class TransaksiController extends Controller
             'pembeli',
             'detailtransaksi.barang.foto_barang'
         ])
-            ->whereIn('status_transaksi', ['sedang disiapkan', 'dikirim'])
+            ->whereIn('status_transaksi', ['disiapkan', 'dikirim', 'belum selesai'])
+            ->whereIn('jenis_pengiriman', ['kurir', 'ambil'])
+            ->whereIn('status_pengiriman', ['belum dijadwalkan', 'dijadwalkan'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -498,7 +527,8 @@ class TransaksiController extends Controller
         }
 
         $transaksi->id_pegawai = $kurir->id_pegawai;
-        $transaksi->status_transaksi = 'dijadwalkan';
+        $transaksi->status_transaksi = 'belum selesai';
+        $transaksi->status_pengiriman = 'dijadwalkan';
         $transaksi->save();
 
         $tokenList = [
@@ -539,7 +569,7 @@ class TransaksiController extends Controller
         }
 
         // Optional: hanya transaksi tertentu yang boleh dikirim
-        if ($transaksi->status_transaksi !== 'dijadwalkan') {
+        if ($transaksi->status_transaksi !== 'belum selesai') {
             return response()->json([
                 'message' => 'Transaksi belum dijadwalkan atau sudah dikirim.'
             ], 422);
@@ -584,7 +614,8 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Jenis pengiriman bukan untuk ambil sendiri'], 422);
         }
 
-        $transaksi->status_transaksi = 'selesai';
+        $transaksi->status_transaksi = 'belum selesai';
+        $transaksi->status_pengiriman = 'belum dijadwalkan';
         $transaksi->tanggal_pengambilan = now();
         $transaksi->save();
 
@@ -609,6 +640,85 @@ class TransaksiController extends Controller
         ]);
     }
 
+    public function diterimaOlehKurir($id)
+    {
+        $kurir = auth()->user();
+
+        if (!$kurir || $kurir->id_jabatan !== 2) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $transaksi = Transaksi::find($id);
+
+        if (!$transaksi) {
+            return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
+        }
+
+        if ($transaksi->id_pegawai !== $kurir->id_pegawai) {
+            return response()->json(['message' => 'Transaksi bukan milik Anda'], 403);
+        }
+
+        if ($transaksi->status_transaksi !== 'dikirim') {
+            return response()->json(['message' => 'Transaksi belum dalam status dikirim'], 400);
+        }
+
+        $transaksi->status_transaksi = 'selesai';
+        $transaksi->save();
+
+        $tokenList = [
+            ['token' => $transaksi->penitip->fcm_token ?? null, 'role' => 'penitip'],
+            ['token' => $transaksi->pembeli->fcm_token ?? null, 'role' => 'pembeli'],
+        ];
+
+
+        foreach ($tokenList as $user) {
+            if ($user['token']) {
+                $message = ''; 
+
+                switch ($user['role']) {
+                    case 'penitip':
+                        $message = 'Barang kamu sudah diterima pembeli';
+                        break;
+                    case 'pembeli':
+                        $message = 'Barang sudah diterima';
+                        break;
+                }
+
+                sendFCMWithJWT(
+                    $user['token'],
+                    '📦 Barang Diterima',
+                    $message
+                );
+            }
+        }
+
+        return response()->json([
+            'message' => 'Transaksi berhasil ditandai sebagai sampai',
+            'data' => $transaksi,
+        ]);
+    }
+
+    public function pengirimanDikirim(Request $request)
+    {
+        $kurir = auth()->user();
+
+        // 🔐 Validasi role kurir
+        if (!$kurir || $kurir->id_jabatan !== 2) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Ambil transaksi yang statusnya 'dikirim' dan dikirim oleh kurir ini
+        $transaksi = Transaksi::with(['pembeli', 'detailTransaksi.barang'])
+            ->where('status_transaksi', 'dikirim')
+            ->where('id_pegawai', $kurir->id_pegawai)
+            ->orderByDesc('updated_at')
+            ->get();
+
+        return response()->json([
+            'message' => 'Berhasil ambil pengiriman selesai',
+            'data' => $transaksi,
+        ]);
+    }
 
     public function konfirmasiBarangDiterima($id_transaksi)
     {

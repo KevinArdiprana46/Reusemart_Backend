@@ -20,7 +20,7 @@ class PegawaiController extends Controller
 
         $pegawai = auth()->user(); // ambil pembeli dari token login
 
-        if (!($pegawai instanceof \App\Models\Pegawai)) {
+        if (!($pegawai instanceof Pegawai)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
