@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Barang;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -118,36 +119,52 @@ class LaporanController extends Controller
     {
         $today = Carbon::today();
 
-        $bulan = $request->query('bulan');
-        $tahun = $request->query('tahun');
+        // Sanitize query input (hilangkan spasi)
+        $bulan = trim($request->query('bulan', ''));
+        $tahun = trim($request->query('tahun', ''));
 
-        $query = Penitipan::with(['barang', 'penitip'])
+        $query = Penitipan::with(['detailpenitipan.barang', 'penitip'])
             ->whereDate('tanggal_akhir', '<', $today);
 
-        if ($bulan && $tahun) {
-            $query->whereMonth('tanggal_akhir', $bulan)
-                ->whereYear('tanggal_akhir', $tahun);
-        } elseif ($tahun) {
-            $query->whereYear('tanggal_akhir', $tahun);
+        // Filter bulan dan tahun jika ada
+        if ($bulan !== '' && $tahun !== '') {
+            $query->whereMonth('tanggal_akhir', (int) $bulan)
+                ->whereYear('tanggal_akhir', (int) $tahun);
+        } elseif ($tahun !== '') {
+            $query->whereYear('tanggal_akhir', (int) $tahun);
         }
 
-        $penitipanHabis = $query->get()->map(function ($item) {
-            return [
-                'id_barang' => $item->barang ? 'P' . $item->barang->id_barang : '-',
-                'nama_produk' => $item->barang->nama_barang ?? '-',
-                'id_penitip' => $item->penitip ? 'T' . $item->penitip->id_penitip : '-',
-                'nama_penitip' => $item->penitip->nama_lengkap ?? '-',
-                'tanggal_masuk' => $item->tanggal_masuk,
-                'tanggal_akhir' => $item->tanggal_akhir,
-                'batas_ambil' => $item->batas_pengambilan,
-            ];
-        });
+        // Ambil data penitipan
+        $penitipanList = $query->get();
+
+        // Proses dan format data hasil
+        $result = [];
+        foreach ($penitipanList as $penitipan) {
+            foreach ($penitipan->detailpenitipan as $detail) {
+                $barang = $detail->barang;
+                if (!$barang)
+                    continue;
+
+                $result[] = [
+                    'id_barang' => 'P' . $barang->id_barang,
+                    'nama_produk' => $barang->nama_barang,
+                    'id_penitip' => 'T' . $penitipan->penitip->id_penitip,
+                    'nama_penitip' => $penitipan->penitip->nama_lengkap,
+                    'tanggal_masuk' => $penitipan->tanggal_masuk,
+                    'tanggal_akhir' => $penitipan->tanggal_akhir,
+                    'batas_ambil' => $penitipan->batas_pengambilan,
+                ];
+            }
+        }
 
         return response()->json([
-            'data' => $penitipanHabis,
+            'success' => true,
+            'data' => $result,
             'tanggal_cetak' => now()->format('Y-m-d H:i:s'),
         ]);
     }
+
+
 
 
 }
