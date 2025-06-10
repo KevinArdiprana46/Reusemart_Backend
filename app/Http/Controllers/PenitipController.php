@@ -7,6 +7,9 @@ use App\Models\Barang;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 
 class PenitipController extends Controller
@@ -261,5 +264,51 @@ class PenitipController extends Controller
             'message' => 'Daftar penitip berhasil diambil.',
             'data' => $penitip
         ]);
+    }
+
+    public function generateTopSeller()
+    {
+        $user = Auth::user();
+        if (!$user || $user->id_role != 6) {
+            return response()->json(['message' => 'Unauthorized. Hanya admin yang dapat mengakses fitur ini.'], 403);
+        }
+
+        //Rentang waktu bulan lalu
+        $start = Carbon::now()->startOfMonth()->subMonth();
+        $end = Carbon::now()->startOfMonth()->subSecond();
+
+        //Hitung total transaksi selesai per penitip
+        $topData = DB::table('transaksi')
+            ->join('detailtransaksi', 'transaksi.id_transaksi', '=', 'detailtransaksi.id_transaksi')
+            ->join('barang', 'detailtransaksi.id_barang', '=', 'barang.id_barang')
+            ->join('detailpenitipan', 'barang.id_barang', '=', 'detailpenitipan.id_barang')
+            ->join('penitipan', 'detailpenitipan.id_penitipan', '=', 'penitipan.id_penitipan')
+            ->join('penitip', 'penitipan.id_penitip', '=', 'penitip.id_penitip')
+            ->where('transaksi.status_transaksi', 'selesai')
+            ->whereBetween('transaksi.tanggal_pelunasan', [$start, $end])
+            ->select('penitip.id_penitip', DB::raw('SUM(barang.harga_barang) as total_penjualan'))
+            ->groupBy('penitip.id_penitip')
+            ->orderByDesc('total_penjualan')
+            ->first();
+
+        if (!$topData) {
+            return response()->json(['message' => 'Tidak ada transaksi selesai bulan lalu'], 200);
+        }
+
+        //Reset semua badge
+        Penitip::where('badge', 'Top Seller')->update(['badge' => null]);
+
+        //Tandai penitip sebagai top seller dan beri bonus
+        $penitip = Penitip::find($topData->id_penitip);
+        if ($penitip) {
+            $penitip->badge = 'Top Seller';
+            $penitip->bonus = ($penitip->bonus ?? 0) + ($topData->total_penjualan * 0.01);
+            $penitip->save();
+        }
+
+        return response()->json([
+            'message' => 'Top Seller berhasil ditentukan.',
+            'penitip' => $penitip
+        ], 200);
     }
 }
