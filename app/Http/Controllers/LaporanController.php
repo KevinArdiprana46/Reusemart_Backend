@@ -92,9 +92,10 @@ class LaporanController extends Controller
             ->whereYear('t.created_at', $tahun)
             ->select(
                 'b.kategori_barang',
-                DB::raw("COUNT(CASE WHEN t.status_transaksi = 'selesai' THEN 1 END) as terjual"),
-                DB::raw("COUNT(CASE WHEN t.status_transaksi != 'selesai' THEN 1 END) as gagal")
+                DB::raw("COUNT(CASE WHEN t.status_transaksi IN ('dibayar', 'dikirim', 'selesai', 'disiapkan') THEN 1 END) as terjual"),
+                DB::raw("COUNT(CASE WHEN t.status_transaksi NOT IN ('dibayar', 'dikirim', 'selesai', 'disiapkan') THEN 1 END) as gagal")
             )
+
             ->groupBy('b.kategori_barang')
             ->get()
             ->keyBy('kategori_barang');
