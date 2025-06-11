@@ -278,13 +278,15 @@ class PegawaiController extends Controller
         foreach ($transaksi->detailTransaksi as $dt) {
             $barang = $dt->barang;
 
-            // Hitung hanya jika: barang dimasukkan oleh pegawai hunter, dan barang sudah terjual
             if (
                 $barang &&
                 $barang->id_pegawai == $user->id_pegawai &&
                 strtolower($barang->status_barang) === 'terjual'
             ) {
-                $foto = $barang->foto_barang->first()?->foto_barang;
+                $fotos = $barang->foto_barang->map(function ($f) {
+                    return asset('storage/' . $f->foto_barang);
+                });
+
                 $penitip = optional($barang->detailpenitipan->penitipan->penitip);
 
                 $detail[] = [
@@ -292,8 +294,8 @@ class PegawaiController extends Controller
                     'harga_barang' => $barang->harga_barang ?? 0,
                     'kategori' => $barang->kategori_barang ?? '-',
                     'penitip' => $penitip->nama_lengkap ?? '-',
-                    'foto_barang' => $foto ? asset('storage/' . $foto) : null,
-                    'komisi' => round(($barang->harga_barang ?? 0) * 0.05), // 5% komisi
+                    'foto_barang' => $fotos,
+                    'komisi' => round(($barang->harga_barang ?? 0) * 0.05),
                 ];
             }
         }
@@ -307,10 +309,5 @@ class PegawaiController extends Controller
             'detail_komisi' => $detail
         ]);
     }
-
-
-
-
-
 
 }

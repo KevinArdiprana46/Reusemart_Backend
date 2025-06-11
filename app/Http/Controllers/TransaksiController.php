@@ -902,7 +902,8 @@ class TransaksiController extends Controller
     public function prosesFinalTransaksi($id_transaksi)
     {
         $transaksi = Transaksi::with([
-            'penitip.penitipan.barang',
+            'detailTransaksi.barang',
+            'penitip.penitipan',
             'pembeli',
             'pegawai'
         ])->find($id_transaksi);
@@ -911,67 +912,60 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
         }
 
-        $bolehDiproses = false;
-
-        if (in_array($transaksi->status_transaksi, ['selesai', 'dikirim'])) {
-            $bolehDiproses = true;
-        }
-
-        if (
-            $transaksi->status_transaksi === 'disiapkan' &&
-            strtolower($transaksi->jenis_pengiriman) === 'kurir reusemart'
-        ) {
-            $bolehDiproses = true;
-        }
+        $bolehDiproses = in_array($transaksi->status_transaksi, ['selesai', 'dikirim', 'disiapkan']) ||
+            ($transaksi->status_transaksi === 'disiapkan' &&
+                strtolower($transaksi->jenis_pengiriman) === 'kurir reusemart');
 
         if (!$bolehDiproses) {
             return response()->json(['message' => 'Transaksi tidak valid untuk diproses.'], 422);
         }
 
-        // 1. Ubah status_barang menjadi "terjual" jika belum diubah
-        foreach ($transaksi->penitip->penitipan ?? [] as $p) {
-            foreach ($p->barang ?? [] as $barang) {
-                if (strtolower($barang->status_barang) === 'tersedia') {
-                    $barang->status_barang = 'terjual';
-                    $barang->save();
-                    \Log::info("🛍 Status barang ID {$barang->id_barang} diubah menjadi 'terjual'");
-                }
+        // 1. Update status & stock barang dari detailTransaksi
+        foreach ($transaksi->detailTransaksi ?? [] as $detail) {
+            $barang = $detail->barang;
+            if ($barang && strtolower($barang->status_barang) === 'tersedia') {
+                $barang->status_barang = 'terjual';
+                $barang->stock = 0;
+                $barang->save();
+                \Log::info("🛍 Barang ID {$barang->id_barang} => 'terjual', stock = 0");
             }
         }
 
         // 2. Komisi ReuseMart
-        if (!$transaksi->komisi_reusemart || $transaksi->komisi_reusemart === 0) {
+        if (!$transaksi->komisi_reusemart || $transaksi->komisi_reusemart == 0) {
             $totalKomisi = 0;
-            foreach ($transaksi->penitip->penitipan ?? [] as $p) {
-                foreach ($p->barang ?? [] as $barang) {
-                    if (in_array(strtolower($barang->status_barang), ['terjual', 'sold out'])) {
-                        $hari = Carbon::parse($p->tanggal_masuk)->diffInDays(Carbon::now());
-                        $komisiPersen = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
+            foreach ($transaksi->detailTransaksi ?? [] as $detail) {
+                $barang = $detail->barang;
+                if ($barang && in_array(strtolower($barang->status_barang), ['terjual', 'sold out'])) {
+                    $penitipan = $barang->detailPenitipan->penitipan ?? null;
+                    if ($penitipan) {
+                        $hari = Carbon::parse($penitipan->tanggal_masuk)->diffInDays(Carbon::now());
+                        $komisiPersen = strtolower($penitipan->status_perpanjangan) === 'tidak diperpanjang'
                             ? ($hari <= 7 ? 0.15 : 0.20)
                             : 0.30;
                         $nilai = $komisiPersen * $barang->harga_barang;
                         $totalKomisi += $nilai;
-                        Log::info("💼 Komisi ReuseMart Rp{$nilai} dari barang ID {$barang->id_barang}");
+                        \Log::info("💼 Komisi ReuseMart Rp{$nilai} dari barang ID {$barang->id_barang}");
                     }
                 }
             }
             $transaksi->komisi_reusemart = $totalKomisi;
             $transaksi->save();
         }
+
         // 3. Komisi Penitip
         $penitip = $transaksi->penitip;
-        if ($penitip) {
-            foreach ($penitip->penitipan ?? [] as $p) {
-                foreach ($p->barang ?? [] as $barang) {
-                    if (in_array(strtolower($barang->status_barang), ['terjual', 'sold out'])) {
-                        if (!$transaksi->tanggal_pelunasan)
-                            continue;
-
-                        $tanggalMasuk = Carbon::parse($p->tanggal_masuk);
+        if ($penitip && $transaksi->tanggal_pelunasan) {
+            foreach ($transaksi->detailTransaksi ?? [] as $detail) {
+                $barang = $detail->barang;
+                if ($barang && in_array(strtolower($barang->status_barang), ['terjual', 'sold out'])) {
+                    $penitipan = $barang->detailPenitipan->penitipan ?? null;
+                    if ($penitipan) {
+                        $tanggalMasuk = Carbon::parse($penitipan->tanggal_masuk);
                         $tanggalTerjual = Carbon::parse($transaksi->tanggal_pelunasan);
                         $selisihHari = $tanggalMasuk->diffInDays($tanggalTerjual);
 
-                        $komisiPersen = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
+                        $komisiPersen = strtolower($penitipan->status_perpanjangan) === 'tidak diperpanjang'
                             ? ($selisihHari <= 7 ? 0.15 : 0.20)
                             : 0.30;
 
@@ -980,64 +974,60 @@ class TransaksiController extends Controller
                         $komisiPenitip = $barang->harga_barang - $nilaiKomisi + $bonus;
 
                         $penitip->saldo += $komisiPenitip;
-
-                        Log::info("✅ Komisi penitip Rp{$komisiPenitip} (termasuk bonus Rp{$bonus}) ditambahkan ke saldo {$penitip->nama_lengkap}");
+                        \Log::info("✅ Komisi penitip Rp{$komisiPenitip} (bonus Rp{$bonus}) ditambahkan ke {$penitip->nama_lengkap}");
                     }
                 }
             }
             $penitip->save();
         }
 
-
-        // 4. Tambah Saldo Penitip
-        if ($penitip) {
-            $totalSaldo = 0;
-            foreach ($penitip->penitipan ?? [] as $p) {
-                foreach ($p->barang ?? [] as $barang) {
-                    if (in_array(strtolower($barang->status_barang), ['terjual', 'sold out'])) {
-                        $hari = Carbon::parse($p->tanggal_masuk)->diffInDays(Carbon::now());
-                        $komisiPersen = strtolower($p->status_perpanjangan) === 'tidak diperpanjang'
-                            ? ($hari <= 7 ? 0.15 : 0.20)
-                            : 0.30;
-                        $komisi = $komisiPersen * $barang->harga_barang;
-                        $penghasilan = $barang->harga_barang - $komisi;
-                        $totalSaldo += $penghasilan;
-                    }
-                }
-            }
-            $penitip->saldo += $totalSaldo;
-            $penitip->save();
-        }
-
-        // 5. Tambah Poin Pembeli
+        // 4. Tambah poin sosial pembeli
         $pembeli = $transaksi->pembeli;
         if ($pembeli && $pembeli->poin_sosial == 0) {
             $poin = floor($transaksi->total_pembayaran / 10000);
             if ($poin > 0) {
                 $pembeli->poin_sosial += $poin;
                 $pembeli->save();
-                Log::info("🎁 Poin +{$poin} ditambahkan ke {$pembeli->nama_lengkap}");
+                \Log::info("🎁 Poin +{$poin} ditambahkan ke {$pembeli->nama_lengkap}");
             }
         }
 
-        // 6. Komisi Hunter
+        // 5. Komisi Hunter
         $pegawai = $transaksi->pegawai;
         if ($pegawai && $pegawai->id_jabatan == 5) {
             $totalKomisiHunter = 0;
-            foreach ($transaksi->penitip->penitipan ?? [] as $p) {
-                foreach ($p->barang ?? [] as $barang) {
-                    if (strtolower($barang->status_barang) === 'terjual' || strtolower($barang->status_barang) === 'sold out') {
-                        $komisi = 0.05 * $barang->harga_barang;
-                        $pegawai->komisi_hunter += $komisi;
-                        $totalKomisiHunter += $komisi;
-                        Log::info("💸 Komisi Hunter Rp{$komisi} untuk {$pegawai->nama_lengkap} dari barang ID {$barang->id_barang}");
-                    }
+            foreach ($transaksi->detailTransaksi ?? [] as $detail) {
+                $barang = $detail->barang;
+                if (
+                    $barang &&
+                    in_array(strtolower($barang->status_barang), ['terjual', 'sold out']) &&
+                    $barang->id_pegawai == $pegawai->id_pegawai
+                ) {
+                    $komisi = 0.05 * $barang->harga_barang;
+                    $pegawai->komisi_hunter += $komisi;
+                    $totalKomisiHunter += $komisi;
+                    \Log::info("💸 Komisi Hunter Rp{$komisi} untuk {$pegawai->nama_lengkap} dari barang ID {$barang->id_barang}");
                 }
             }
-            $pegawai->save();
+            if ($totalKomisiHunter > 0) {
+                $pegawai->save();
+                \Log::info("✅ Total Komisi Hunter ditambahkan: Rp{$totalKomisiHunter}");
+            }
         }
+
+        // 6. Ubah status transaksi menjadi selesai jika belum
+        if ($transaksi->status_transaksi !== 'selesai') {
+            $transaksi->status_transaksi = 'selesai';
+            $transaksi->save();
+            \Log::info("✅ Status transaksi #{$transaksi->id_transaksi} diubah menjadi 'selesai'");
+        }
+
         return response()->json(['message' => 'Semua proses final transaksi berhasil.']);
     }
+
+
+
+
 
 
 
