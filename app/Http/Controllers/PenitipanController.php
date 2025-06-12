@@ -16,9 +16,9 @@ use Log;
 
 class PenitipanController extends Controller
 {
-public function showAllPenitipan()
-{
-    $pegawai = auth()->user();
+    public function showAllPenitipan()
+    {
+        $pegawai = auth()->user();
 
         if (!$pegawai || $pegawai->id_jabatan !== 7) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -134,41 +134,41 @@ public function showAllPenitipan()
 
 
 
-public function searchBarangByNama(Request $request)
-{
-    $penitip = Auth::user();
+    public function searchBarangByNama(Request $request)
+    {
+        $penitip = Auth::user();
 
-    if (!$penitip || !$penitip->id_penitip) {
-        return response()->json(['message' => 'Unauthorized'], 401);
+        if (!$penitip || !$penitip->id_penitip) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $keyword = $request->query('q');
+
+        if (!$keyword) {
+            return response()->json(['message' => 'Parameter pencarian (q) wajib diisi.'], 400);
+        }
+
+        $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
+            ->where('id_penitip', $penitip->id_penitip)
+            ->whereHas('detailpenitipan.barang', function ($query) use ($keyword) {
+                $query->where(function ($subQuery) use ($keyword) {
+                    $subQuery->where('nama_barang', 'LIKE', '%' . $keyword . '%')
+                        ->orWhere('kategori_barang', 'LIKE', '%' . $keyword . '%')
+                        ->orWhere('deskripsi', 'LIKE', '%' . $keyword . '%')
+                        ->orWhere('harga_barang', 'LIKE', '%' . $keyword . '%');
+                });
+            })
+            ->get();
+
+        if ($penitipanList->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada barang ditemukan dengan nama tersebut.',
+                'kata_kunci' => $keyword
+            ], 404);
+        }
+
+        return response()->json($penitipanList);
     }
-
-    $keyword = $request->query('q');
-
-    if (!$keyword) {
-        return response()->json(['message' => 'Parameter pencarian (q) wajib diisi.'], 400);
-    }
-
-    $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
-        ->where('id_penitip', $penitip->id_penitip)
-        ->whereHas('detailpenitipan.barang', function ($query) use ($keyword) {
-            $query->where(function ($subQuery) use ($keyword) {
-                $subQuery->where('nama_barang', 'LIKE', '%' . $keyword . '%')
-                    ->orWhere('kategori_barang', 'LIKE', '%' . $keyword . '%')
-                    ->orWhere('deskripsi', 'LIKE', '%' . $keyword . '%')
-                    ->orWhere('harga_barang', 'LIKE', '%' . $keyword . '%');
-            });
-        })
-        ->get();
-
-    if ($penitipanList->isEmpty()) {
-        return response()->json([
-            'message' => 'Tidak ada barang ditemukan dengan nama tersebut.',
-            'kata_kunci' => $keyword
-        ], 404);
-    }
-
-    return response()->json($penitipanList);
-}
 
 
     public function perpanjangPenitipan($id)
@@ -202,43 +202,43 @@ public function searchBarangByNama(Request $request)
     }
 
     public function konfirmasiPengambilan($id)
-{
-    $pegawai = auth()->user();
+    {
+        $pegawai = auth()->user();
 
-    if (!$pegawai || $pegawai->id_jabatan !== 7) {
-        return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$pegawai || $pegawai->id_jabatan !== 7) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $penitipan = Penitipan::with('detailpenitipan')->find($id);
+
+        if (!$penitipan) {
+            return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
+        }
+
+        $idBarangList = $penitipan->detailpenitipan->pluck('id_barang');
+
+        // Ambil transaksi terkait barang (satu transaksi saja yang terbaru)
+        $transaksi = Transaksi::whereHas('detailTransaksi', function ($query) use ($idBarangList) {
+            $query->whereIn('id_barang', $idBarangList);
+        })->latest()->first();
+
+        if (!$transaksi) {
+            return response()->json(['message' => 'Transaksi untuk barang ini tidak ditemukan.'], 404);
+        }
+
+        if ($transaksi->status_transaksi === 'selesai') {
+            return response()->json(['message' => 'Transaksi sudah selesai.'], 400);
+        }
+
+        $transaksi->status_transaksi = 'selesai';
+        $transaksi->tanggal_diterima = Carbon::now(); // jika kolom tersedia
+        $transaksi->save();
+
+        return response()->json([
+            'message' => 'Transaksi berhasil dikonfirmasi selesai.',
+            'data' => $transaksi,
+        ]);
     }
-
-    $penitipan = Penitipan::with('detailpenitipan')->find($id);
-
-    if (!$penitipan) {
-        return response()->json(['message' => 'Data penitipan tidak ditemukan.'], 404);
-    }
-
-    $idBarangList = $penitipan->detailpenitipan->pluck('id_barang');
-
-    // Ambil transaksi terkait barang (satu transaksi saja yang terbaru)
-    $transaksi = Transaksi::whereHas('detailTransaksi', function ($query) use ($idBarangList) {
-        $query->whereIn('id_barang', $idBarangList);
-    })->latest()->first();
-
-    if (!$transaksi) {
-        return response()->json(['message' => 'Transaksi untuk barang ini tidak ditemukan.'], 404);
-    }
-
-    if ($transaksi->status_transaksi === 'selesai') {
-        return response()->json(['message' => 'Transaksi sudah selesai.'], 400);
-    }
-
-    $transaksi->status_transaksi = 'selesai';
-    $transaksi->tanggal_diterima = Carbon::now(); // jika kolom tersedia
-    $transaksi->save();
-
-    return response()->json([
-        'message' => 'Transaksi berhasil dikonfirmasi selesai.',
-        'data' => $transaksi,
-    ]);
-}
 
 
     public function storePenitipanBarang(Request $request)
@@ -487,6 +487,88 @@ public function searchBarangByNama(Request $request)
         return response()->json([
             'message' => 'Data penitipan berhasil diperbarui.',
             'data' => $penitipan
+        ]);
+    }
+
+    public function riwayatPenitipan()
+    {
+        $penitip = Auth::user();
+
+        if (!$penitip || !$penitip->id_penitip) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $penitipanList = Penitipan::with(['detailpenitipan.barang.foto_barang'])
+            ->where('id_penitip', $penitip->id_penitip)
+            ->get();
+
+        $barangList = [];
+
+        foreach ($penitipanList as $penitipan) {
+            foreach ($penitipan->detailpenitipan as $detail) {
+                if ($detail->barang) {
+                    $barang = $detail->barang;
+                    $barangList[] = [
+                        'id_barang' => $barang->id_barang,
+                        'nama_barang' => $barang->nama_barang,
+                        'deskripsi' => $barang->deskripsi,
+                        'kategori_barang' => $barang->kategori_barang,
+                        'harga_barang' => $barang->harga_barang,
+                        'berat_barang' => $barang->berat_barang,
+                        'status_barang' => $barang->status_barang,
+                        'tanggal_masuk' => $penitipan->tanggal_masuk,
+                        'rating_barang' => $barang->rating_barang,
+                        'tanggal_garansi' => $barang->tanggal_garansi ?? null,
+                        'foto_barang' => $barang->foto_barang->pluck('foto_barang'), // hanya nama file
+                    ];
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => 'Riwayat penitipan berhasil diambil.',
+            'data' => $barangList,
+        ]);
+    }
+
+    public function sumbangBarangSukarela($id)
+    {
+        $user = Auth::user();
+        if (!$user || $user->id_role !== 3) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $barang = Barang::find($id);
+        if (!$barang) {
+            return response()->json(['message' => 'Barang tidak ditemukan'], 404);
+        }
+
+        if ($barang->status_barang !== 'tersedia') {
+            return response()->json(['message' => 'Barang tidak dapat disumbangkan. Status: ' . $barang->status_barang], 400);
+        }
+
+        // Ambil penitip dari relasi pivot barang → detailpenitipan → penitipan → penitip
+        $detail = DetailPenitipan::where('id_barang', $barang->id_barang)->first();
+        if (!$detail || !$detail->penitipan || !$detail->penitipan->penitip) {
+            return response()->json(['message' => 'Penitip tidak ditemukan dari relasi barang'], 404);
+        }
+
+        $penitip = $detail->penitipan->penitip;
+
+        // Hitung poin sosial: 1 poin per 10.000
+        $poin = floor($barang->harga_barang / 10000);
+        $penitip->poin_sosial += $poin;
+        $penitip->save();
+
+        // Update status barang
+        $barang->status_barang = 'barang untuk donasi';
+        $barang->save();
+
+        return response()->json([
+            'message' => 'Barang berhasil disumbangkan dan poin sosial diberikan',
+            'poin_diberikan' => $poin,
+            'penitip' => $penitip->nama_lengkap,
+            'barang' => $barang->nama_barang,
         ]);
     }
 }

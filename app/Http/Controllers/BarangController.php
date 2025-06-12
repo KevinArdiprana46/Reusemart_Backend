@@ -463,7 +463,54 @@ class BarangController extends Controller
             ]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Gagal menyimpan barang.', 'error' => $e->getMessage()], 500);
-            \Log::error("❌ Gagal store barang", ['exception' => $e]);
+            Log::error("❌ Gagal store barang", ['exception' => $e]);
         }
+    }
+
+    public function stokGudang()
+    {
+        $user = Auth::user();
+
+        // Cek apakah role = 1 (Owner)
+        if ($user->id_role !== 5) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Akses ditolak. Hanya Owner yang dapat melihat laporan ini.'
+            ], 403);
+        }
+
+        $barang = Barang::with(['pegawai', 'detailpenitipan.penitipan.penitip'])
+            ->where('status_barang', 'tersedia')
+            ->get();
+
+        $result = $barang->map(function ($b) {
+            $detail = optional($b->detailpenitipan)->first();
+            $penitipan = optional($detail)->penitipan;
+            $penitip = optional($penitipan)->penitip;
+            $hunter = optional($b->pegawai);
+
+            return [
+                'kode_produk'     => $b->id_barang,
+                'nama_produk'     => $b->nama_barang,
+                'id_penitip'      => $penitip->id_penitip ?? '-',
+                'nama_penitip'    => $penitip->nama_lengkap ?? '-',
+                'tanggal_masuk'   => $penitipan && $penitipan->tanggal_masuk
+                    ? \Carbon\Carbon::parse($penitipan->tanggal_masuk)->format('d/m/Y')
+                    : '-',
+                'perpanjangan'    => match ($penitipan->status_perpanjangan ?? null) {
+                    'diperpanjang' => 'Ya',
+                    'tidak diperpanjang' => 'Tidak',
+                    default => '-',
+                },
+                'id_hunter' => $hunter?->id_pegawai,
+                'nama_hunter'     => $hunter->nama_lengkap ?? '-',
+                'harga'           => $b->harga_barang,
+            ];
+        });
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $result,
+        ]);
     }
 }

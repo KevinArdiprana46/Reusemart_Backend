@@ -21,12 +21,12 @@ use App\Http\Controllers\{
     KeranjangController,
     MerchandiseController,
 };
-
+use App\Models\Transaksi;
 
 //FCM TOKEN
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
 Route::middleware('auth:sanctum')->post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
-Route:: middleware('auth:sanctum')->post('/update-fcm-token-pegawai', [PegawaiController::class, 'updateFcmTokenPegawai']);
+Route::middleware('auth:sanctum')->post('/update-fcm-token-pegawai', [PegawaiController::class, 'updateFcmTokenPegawai']);
 
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
@@ -36,6 +36,7 @@ Route::post('/password/email', [ResetPasswordController::class, 'sendResetLinkEm
 Route::post('/password/reset', [ResetPasswordController::class, 'reset']);
 
 // 👤 PEMBELI
+Route::get('/pembeli/{id}/alamat-utama', [AlamatController::class, 'getAlamatUtama']);
 Route::prefix('pembeli')->middleware('auth:sanctum')->group(function () {
     Route::get('/profile', [PembeliController::class, 'profile']);
     Route::post('/update', [PembeliController::class, 'update']);
@@ -64,6 +65,7 @@ Route::prefix('penitip')->middleware('auth:sanctum')->group(function () {
     Route::get('/{id}', [PenitipController::class, 'show']);
     Route::put('/update/{id}', [PenitipController::class, 'update']);
     Route::delete('/delete/{id}', [PenitipController::class, 'destroy']);
+    Route::post('/generate-top-seller', [PenitipController::class, 'generateTopSeller']);
 });
 
 // 🧾 DONASI
@@ -128,6 +130,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/transaksi/proses-final/{id}', [TransaksiController::class, 'prosesFinalTransaksi']);
     Route::get('/nota/{id_transaksi}/pdf', [TransaksiController::class, 'generateNotaPDF']);
     Route::get('/transaksi/semua', [TransaksiController::class, 'semuaTransaksi']);
+    Route::get('/transaksi/laporan-komisi', [TransaksiController::class, 'laporanKomisiBulanan']);
 });
 
 //Laporan
@@ -177,6 +180,9 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::get('/test-notifikasi-penitip/{id_penitip}', [PenitipanController::class, 'testKirimNotifikasi']);
     Route::get('/test-notif-penitipan', [PenitipanController::class, 'testNotifikasiTanggal']);
     Route::get('/get-penitipan-baru', [PenitipanController::class, 'getPenitipanBaru']);
+    Route::get('/riwayat-penitipan', [PenitipanController::class, 'riwayatPenitipan']);
+
+    Route::post('/barang/{id}/donasi-sukarela', [BarangController::class, 'sumbangBarangSukarela']);
 });
 
 // 📦 BARANG
@@ -198,6 +204,7 @@ Route::middleware('auth:sanctum')->prefix('barang')->group(function () {
     Route::get('/hitung-rating/{id}', [BarangController::class, 'hitungRatingPenitip']);
     // Route::post('/foto-barang/upload', [BarangController::class, 'uploadFotoBarang']);
     Route::get('/detail-barang/{id}', [BarangController::class, 'getDetailBarang']);
+    Route::get('/laporan/stok-gudang', [BarangController::class, 'stokGudang']);
 });
 
 //NonLogin

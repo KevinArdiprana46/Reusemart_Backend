@@ -18,6 +18,7 @@ use Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 
 
@@ -1087,5 +1088,38 @@ class TransaksiController extends Controller
         return response()->json($transaksi);
     }
 
+    public function laporanKomisiBulanan(Request $request)
+    {
+        $request->validate([
+            'bulan' => 'required|integer|min:1|max:12',
+            'tahun' => 'required|integer|min:2000',
+        ]);
 
+        $bulan = $request->bulan;
+        $tahun = $request->tahun;
+
+        $data = DB::table('detailtransaksi')
+            ->join('barang', 'detailtransaksi.id_barang', '=', 'barang.id_barang')
+            ->join('detailpenitipan', 'barang.id_barang', '=', 'detailpenitipan.id_barang')
+            ->join('penitipan', 'detailpenitipan.id_penitipan', '=', 'penitipan.id_penitipan')
+            ->join('transaksi', 'detailtransaksi.id_transaksi', '=', 'transaksi.id_transaksi')
+            ->leftJoin('pegawai', 'barang.id_pegawai', '=', 'pegawai.id_pegawai')
+            ->select(
+                'barang.id_barang',
+                'barang.nama_barang',
+                'barang.harga_barang',
+                'penitipan.tanggal_masuk',
+                'transaksi.tanggal_pelunasan',
+                DB::raw('IFNULL(pegawai.komisi_hunter, 0) AS komisi_hunter'),
+                DB::raw('IFNULL(detailtransaksi.bonus_penitip, 0) AS bonus_penitip')
+            )
+            ->whereMonth('transaksi.tanggal_pelunasan', $bulan)
+            ->whereYear('transaksi.tanggal_pelunasan', $tahun)
+            ->get();
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $data
+        ]);
+    }
 }
