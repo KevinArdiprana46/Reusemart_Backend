@@ -637,7 +637,6 @@ class TransaksiController extends Controller
             ->whereIn('status_transaksi', ['disiapkan', 'dikirim'])
             ->whereDate('tanggal_pengambilan', '<', $now->copy()->subDays(2)->toDateString())
             ->get();
-
         $jumlah = 0;
 
         foreach ($expiredTransaksi as $transaksi) {

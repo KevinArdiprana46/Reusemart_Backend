@@ -254,7 +254,7 @@ class PegawaiController extends Controller
             'alamat' => $user->alamat,
             'no_telepon' => $user->no_telepon,
             'gender' => $user->gender,
-            'komisi_history' => $history->values(), // reset key index
+            'komisi_history' => $history->values(),
         ]);
     }
 
