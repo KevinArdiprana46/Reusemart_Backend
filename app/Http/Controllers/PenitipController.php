@@ -295,8 +295,8 @@ class PenitipController extends Controller
             return response()->json(['message' => 'Tidak ada transaksi selesai bulan lalu'], 200);
         }
 
-        //Reset semua badge
-        Penitip::where('badge', 'Top Seller')->update(['badge' => null]);
+        //Reset badge semua penitip
+        Penitip::query()->update(['badge' => 'Regular']);
 
         //Tandai penitip sebagai top seller dan beri bonus
         $penitip = Penitip::find($topData->id_penitip);
@@ -311,4 +311,6 @@ class PenitipController extends Controller
             'penitip' => $penitip
         ], 200);
     }
+
+    
 }

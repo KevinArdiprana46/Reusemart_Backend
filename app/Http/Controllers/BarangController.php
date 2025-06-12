@@ -502,7 +502,7 @@ class BarangController extends Controller
                     'tidak diperpanjang' => 'Tidak',
                     default => '-',
                 },
-                'id_hunter'       => $hunter->id_pegawai ?? '-',
+                'id_hunter' => $hunter?->id_pegawai,
                 'nama_hunter'     => $hunter->nama_lengkap ?? '-',
                 'harga'           => $b->harga_barang,
             ];

@@ -511,14 +511,14 @@ class PenitipanController extends Controller
                     $barangList[] = [
                         'id_barang' => $barang->id_barang,
                         'nama_barang' => $barang->nama_barang,
-                        'deskripsi'=> $barang->deskripsi,
+                        'deskripsi' => $barang->deskripsi,
                         'kategori_barang' => $barang->kategori_barang,
                         'harga_barang' => $barang->harga_barang,
-                        'berat_barang'=> $barang->berat_barang,
+                        'berat_barang' => $barang->berat_barang,
                         'status_barang' => $barang->status_barang,
                         'tanggal_masuk' => $penitipan->tanggal_masuk,
                         'rating_barang' => $barang->rating_barang,
-                        'tanggal_garansi'=> $barang->tanggal_garansi ?? null,
+                        'tanggal_garansi' => $barang->tanggal_garansi ?? null,
                         'foto_barang' => $barang->foto_barang->pluck('foto_barang'), // hanya nama file
                     ];
                 }
@@ -528,6 +528,47 @@ class PenitipanController extends Controller
         return response()->json([
             'message' => 'Riwayat penitipan berhasil diambil.',
             'data' => $barangList,
+        ]);
+    }
+
+    public function sumbangBarangSukarela($id)
+    {
+        $user = Auth::user();
+        if (!$user || $user->id_role !== 3) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $barang = Barang::find($id);
+        if (!$barang) {
+            return response()->json(['message' => 'Barang tidak ditemukan'], 404);
+        }
+
+        if ($barang->status_barang !== 'tersedia') {
+            return response()->json(['message' => 'Barang tidak dapat disumbangkan. Status: ' . $barang->status_barang], 400);
+        }
+
+        // Ambil penitip dari relasi pivot barang → detailpenitipan → penitipan → penitip
+        $detail = DetailPenitipan::where('id_barang', $barang->id_barang)->first();
+        if (!$detail || !$detail->penitipan || !$detail->penitipan->penitip) {
+            return response()->json(['message' => 'Penitip tidak ditemukan dari relasi barang'], 404);
+        }
+
+        $penitip = $detail->penitipan->penitip;
+
+        // Hitung poin sosial: 1 poin per 10.000
+        $poin = floor($barang->harga_barang / 10000);
+        $penitip->poin_sosial += $poin;
+        $penitip->save();
+
+        // Update status barang
+        $barang->status_barang = 'barang untuk donasi';
+        $barang->save();
+
+        return response()->json([
+            'message' => 'Barang berhasil disumbangkan dan poin sosial diberikan',
+            'poin_diberikan' => $poin,
+            'penitip' => $penitip->nama_lengkap,
+            'barang' => $barang->nama_barang,
         ]);
     }
 }

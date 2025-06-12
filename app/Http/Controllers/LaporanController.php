@@ -14,28 +14,35 @@ class LaporanController extends Controller
     public function laporanPenjualanBulanan(Request $request)
     {
         $user = auth()->user();
+
         if (!$user || $user->id_role != 5) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
         $tahun = $request->query('tahun', now()->year);
 
-        // Ambil data dari query
-        $data = DB::table('detailtransaksi as dt')
-            ->join('transaksi as t', 'dt.id_transaksi', '=', 't.id_transaksi')
+        // Status yang dianggap sebagai penjualan berhasil
+        $statusValid = ['selesai', 'disiapkan', 'hangus'];
+
+        // Ambil semua transaksi valid
+        $transaksi = DB::table('transaksi as t')
+            ->join('detailtransaksi as dt', 't.id_transaksi', '=', 'dt.id_transaksi')
             ->join('barang as b', 'dt.id_barang', '=', 'b.id_barang')
-            ->whereYear('t.created_at', $tahun)
-            ->where('t.status_transaksi', 'selesai')
-            ->select(
-                DB::raw("MONTH(t.created_at) as bulan"),
-                DB::raw("SUM(dt.jumlah) as jumlah_terjual"),
-                DB::raw("SUM(b.harga_barang * dt.jumlah) as total_penjualan")
-            )
-            ->groupBy(DB::raw("MONTH(t.created_at)"))
-            ->orderBy(DB::raw("MONTH(t.created_at)"))
+            ->join('detailpenitipan as dp', 'b.id_barang', '=', 'dp.id_barang') // pastikan ada detail penitipan
+            ->whereYear('t.tanggal_pelunasan', $tahun)
+            ->whereIn('t.status_transaksi', $statusValid)
+            ->select('t.id_transaksi', 't.tanggal_pelunasan', 't.jenis_pengiriman', 't.biaya_pengiriman')
+            ->distinct()
             ->get();
 
-        // Daftar semua bulan
+        // Kelompokkan transaksi berdasarkan bulan
+        $transaksiByBulan = [];
+        foreach ($transaksi as $tr) {
+            $bulan = (int) date('n', strtotime($tr->tanggal_pelunasan));
+            $transaksiByBulan[$bulan][] = $tr;
+        }
+
+        // Daftar nama bulan
         $bulanList = [
             1 => 'Januari',
             2 => 'Februari',
@@ -48,17 +55,50 @@ class LaporanController extends Controller
             9 => 'September',
             10 => 'Oktober',
             11 => 'November',
-            12 => 'Desember'
+            12 => 'Desember',
         ];
 
-        // Format hasil: jika tidak ada data, isi 0
         $hasil = [];
         for ($i = 1; $i <= 12; $i++) {
-            $item = $data->firstWhere('bulan', $i);
+            $bulanTransaksi = $transaksiByBulan[$i] ?? [];
+
+            if (count($bulanTransaksi) === 0) {
+                $hasil[] = [
+                    'bulan' => $bulanList[$i],
+                    'jumlah_terjual' => 0,
+                    'total_penjualan' => 0,
+                ];
+                continue;
+            }
+
+            $idTransaksiBulanIni = collect($bulanTransaksi)->pluck('id_transaksi')->toArray();
+
+            // Ambil id_barang dari detail transaksi bulan ini
+            $detail = DB::table('detailtransaksi')
+                ->whereIn('id_transaksi', $idTransaksiBulanIni)
+                ->select('id_barang')
+                ->get();
+
+            $idBarang = $detail->pluck('id_barang')->unique()->toArray();
+
+            // Ambil harga tiap barang
+            $barang = DB::table('barang')
+                ->whereIn('id_barang', $idBarang)
+                ->select('harga_barang')
+                ->get();
+
+            $totalBarang = $barang->sum('harga_barang');
+            $jumlahTerjual = count($idBarang);
+
+            // Tambahkan ongkir dari transaksi yang dikirim kurir
+            $totalOngkir = collect($bulanTransaksi)
+                ->filter(fn($tr) => $tr->jenis_pengiriman === 'dikirim kurir reusemart')
+                ->sum('biaya_pengiriman');
+
             $hasil[] = [
                 'bulan' => $bulanList[$i],
-                'jumlah_terjual' => $item->jumlah_terjual ?? 0,
-                'total_penjualan' => $item->total_penjualan ?? 0,
+                'jumlah_terjual' => $jumlahTerjual,
+                'total_penjualan' => $totalBarang + $totalOngkir,
             ];
         }
 
@@ -138,5 +178,4 @@ class LaporanController extends Controller
             'tanggal_cetak' => now()->format('Y-m-d H:i:s'),
         ]);
     }
-
 }

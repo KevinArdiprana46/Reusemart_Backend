@@ -180,7 +180,9 @@ Route::prefix('penitipan')->middleware('auth:sanctum')->group(function () {
     Route::get('/test-notifikasi-penitip/{id_penitip}', [PenitipanController::class, 'testKirimNotifikasi']);
     Route::get('/test-notif-penitipan', [PenitipanController::class, 'testNotifikasiTanggal']);
     Route::get('/get-penitipan-baru', [PenitipanController::class, 'getPenitipanBaru']);
-    Route::get('/riwayat-penitipan', [PenitipanController::class,'riwayatPenitipan']);
+    Route::get('/riwayat-penitipan', [PenitipanController::class, 'riwayatPenitipan']);
+
+    Route::post('/barang/{id}/donasi-sukarela', [BarangController::class, 'sumbangBarangSukarela']);
 });
 
 // 📦 BARANG
