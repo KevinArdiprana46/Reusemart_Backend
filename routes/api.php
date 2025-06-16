@@ -145,6 +145,7 @@ Route::prefix('pegawai')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PegawaiController::class, 'index']);
     Route::get('/daftar', [PegawaiController::class, 'getDaftarPegawai']);
     Route::get('/hunter', [PegawaiController::class, 'getHunter']);
+    Route::get('/hunter/komisi/daftar', [PegawaiController::class, 'daftarKomisi']);
     Route::get('/hunter/komisi', [PegawaiController::class, 'showDetailHunterWithKomisiHistory']);
     Route::get('/hunter/komisi/{id_transaksi}', [PegawaiController::class, 'getDetailKomisiHunter']);
     Route::get('/qc', [PegawaiController::class, 'getQc']);

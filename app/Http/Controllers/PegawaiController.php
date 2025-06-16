@@ -6,6 +6,8 @@ use App\Models\Barang;
 use App\Models\Pegawai;
 use App\Models\Penitipan;
 use Auth;
+use Carbon\Carbon;
+use DB;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -216,10 +218,11 @@ class PegawaiController extends Controller
         }
 
         $history = Transaksi::with([
-            'detailTransaksi.barang.foto_barang',
-            'detailTransaksi.barang.detailpenitipan.penitipan.penitip'
+            'detailTransaksi.barang.detailpenitipan.penitipan.penitip',
+            'detailTransaksi.barang.pegawai',
         ])
             ->where('status_transaksi', 'selesai')
+            ->orderBy('tanggal_pelunasan', 'asc')
             ->get()
             ->flatMap(function ($transaksi) use ($user) {
                 return $transaksi->detailTransaksi
@@ -242,72 +245,117 @@ class PegawaiController extends Controller
                             'komisi' => round($harga * 0.05),
                         ];
                     });
-            });
+            })->values();
+
+        // Hitung running total berdasar komisi sebelumnya
+        $komisiAwal = $user->komisi_hunter - $history->sum('komisi');
+        $runningTotal = $komisiAwal;
+
+        $history = $history->map(function ($item) use (&$runningTotal) {
+            $runningTotal += $item['komisi'];
+            $item['komisi_hunter_saat_itu'] = $runningTotal;
+            return $item;
+        });
 
         return response()->json([
             'id_pegawai' => $user->id_pegawai,
             'nama_lengkap' => $user->nama_lengkap,
             'komisi_total' => $user->komisi_hunter,
-            'tanggal_lahir' => $user->tanggal_lahir,
-            'image_user' => $user->image_user,
-            'email' => $user->email,
-            'alamat' => $user->alamat,
-            'no_telepon' => $user->no_telepon,
-            'gender' => $user->gender,
-            'komisi_history' => $history->values(),
+            'komisi_history' => $history,
         ]);
     }
+
 
 
     public function getDetailKomisiHunter($id_transaksi)
-    {
-        $user = Auth::user();
+{
+    $user = Auth::user();
 
-        if (!$user || $user->id_jabatan != 5) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $transaksi = Transaksi::with([
-            'pembeli',
-            'detailTransaksi.barang.foto_barang',
-            'detailTransaksi.barang.detailpenitipan.penitipan.penitip'
-        ])->findOrFail($id_transaksi);
-
-        $detail = [];
-
-        foreach ($transaksi->detailTransaksi as $dt) {
-            $barang = $dt->barang;
-
-            if (
-                $barang &&
-                $barang->id_pegawai == $user->id_pegawai &&
-                strtolower($barang->status_barang) === 'terjual'
-            ) {
-                $fotos = $barang->foto_barang->map(function ($f) {
-                    return asset('storage/' . $f->foto_barang);
-                });
-
-                $penitip = optional($barang->detailpenitipan->penitipan->penitip);
-
-                $detail[] = [
-                    'nama_barang' => $barang->nama_barang ?? '-',
-                    'harga_barang' => $barang->harga_barang ?? 0,
-                    'kategori' => $barang->kategori_barang ?? '-',
-                    'penitip' => $penitip->nama_lengkap ?? '-',
-                    'foto_barang' => $fotos,
-                    'komisi' => round(($barang->harga_barang ?? 0) * 0.05),
-                ];
-            }
-        }
-
-        return response()->json([
-            'id_transaksi' => $transaksi->id_transaksi,
-            'tanggal' => $transaksi->tanggal_pelunasan,
-            'total_harga' => $transaksi->total_harga,
-            'status' => $transaksi->status_transaksi,
-            'pembeli' => optional($transaksi->pembeli)->nama_lengkap ?? '-',
-            'detail_komisi' => $detail
-        ]);
+    if (!$user || $user->id_jabatan != 5) {
+        return response()->json(['message' => 'Unauthorized'], 403);
     }
 
+    $transaksi = Transaksi::with([
+        'pembeli',
+        'detailTransaksi.barang.foto_barang',
+        'detailTransaksi.barang.detailpenitipan.penitipan.penitip'
+    ])->findOrFail($id_transaksi);
+
+    $detail = [];
+    $totalKomisi = 0;
+
+    foreach ($transaksi->detailTransaksi as $dt) {
+        $barang = $dt->barang;
+
+        if (
+            $barang &&
+            $barang->id_pegawai == $user->id_pegawai &&
+            strtolower($barang->status_barang) === 'terjual'
+        ) {
+            $fotoUrls = $barang->foto_barang->map(function ($foto) {
+                return asset('storage/' . $foto->foto_barang);
+            });
+
+            $penitip = optional($barang->detailpenitipan->penitipan->penitip);
+
+            $komisi = round(($barang->harga_barang ?? 0) * 0.05);
+            $totalKomisi += $komisi;
+
+            $detail[] = [
+                'nama_barang' => $barang->nama_barang ?? '-',
+                'harga_barang' => $barang->harga_barang ?? 0,
+                'kategori' => $barang->kategori_barang ?? '-',
+                'penitip' => $penitip->nama_lengkap ?? '-',
+                'foto_barang' => $fotoUrls,
+                'komisi' => $komisi,
+            ];
+        }
+    }
+
+    return response()->json([
+        'id_transaksi' => $transaksi->id_transaksi,
+        'tanggal' => $transaksi->tanggal_pelunasan,
+        'total_harga' => $transaksi->total_harga,
+        'status' => $transaksi->status_transaksi,
+        'pembeli' => optional($transaksi->pembeli)->nama_lengkap ?? '-',
+        'komisi_anda' => $totalKomisi,
+        'detail_komisi' => $detail
+    ]);
+}
+
+
+
+
+
+
+
+
+    public function daftarKomisi()
+    {
+        $idHunter = 5;
+        $tanggal = Carbon::now()->subDays(30)->toDateString();
+
+        $pegawai = Pegawai::with('jabatan')->find($idHunter);
+
+        if (!$pegawai || $pegawai->id_jabatan != 5) {
+            return response()->json(['message' => 'Pegawai bukan seorang hunter.'], 403);
+        }
+
+        $data = Barang::with(['pegawai'])
+            ->where('id_pegawai', $idHunter)
+            ->where('created_at', '>=', $tanggal)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($barang) {
+                return [
+                    'nama_barang' => $barang->nama_barang,
+                    'tanggal_masuk' => date('d/m/Y', strtotime($barang->created_at)),
+                    'status_barang' => $barang->status_barang,
+                    'komisi_hunter' => round(($barang->harga_barang ?? 0) * 0.05),
+                    'nama_hunter' => $barang->pegawai->nama_lengkap ?? '-',
+                ];
+            });
+
+        return response()->json(['data' => $data]);
+    }
 }
