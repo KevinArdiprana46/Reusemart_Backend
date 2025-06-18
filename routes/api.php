@@ -116,6 +116,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/gudang/transaksi', [TransaksiController::class, 'transaksiGudang']);
     Route::post('/gudang/transaksi/jadwalkan-kurir/{id_transaksi}', [TransaksiController::class, 'jadwalkanPengirimanKurir']);
     Route::post('/gudang/transaksi/jadwalkan-ambil-sendiri/{id_transaksi}', [TransaksiController::class, 'jadwalkanAmbilSendiri']);
+    Route::post('/kurir/transaksi/kirim/{id_transaksi}', [TransaksiController::class, 'kirimBarang']);
     Route::post('/gudang/transaksi/konfirmasi-diterima/{id_transaksi}', [TransaksiController::class, 'konfirmasiBarangDiterima']);
     Route::post('/transaksi/hanguskan-otomatis', [TransaksiController::class, 'cekTransaksiHangus']);
     Route::post('/gudang/transaksi/hitung-komisi-hunter/{id_transaksi}', [TransaksiController::class, 'hitungKomisiHunterByTransaksi']);
