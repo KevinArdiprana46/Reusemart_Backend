@@ -473,12 +473,56 @@ class TransaksiController extends Controller
             'pembeli',
             'detailtransaksi.barang.foto_barang'
         ])
-            ->whereIn('status_transaksi', ['disiapkan', 'dikirim', 'hangus', 'selesai'])
+            ->whereIn('status_transaksi', ['disiapkan', 'dikirim','pengambilan mandiri', 'hangus', 'selesai'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         return response()->json($transaksi);
     }
+
+    // public function kirimBarang($id_transaksi)
+    // {
+    //     $pegawai = auth()->user();
+
+    //     // 🔐 Hanya kurir (id_jabatan = 2)
+    //     if (!$pegawai || $pegawai->id_jabatan !== 2) {
+    //         return response()->json(['message' => 'Unauthorized'], 403);
+    //     }
+
+    //     // Ambil transaksi dan relasinya
+    //     $transaksi = Transaksi::with(['penitip', 'pembeli'])->find($id_transaksi);
+    //     if (!$transaksi) {
+    //         return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
+    //     }
+
+    //     // Optional: hanya transaksi tertentu yang boleh dikirim
+    //     if ($transaksi->status_transaksi !== 'belum selesai') {
+    //         return response()->json([
+    //             'message' => 'Transaksi belum dijadwalkan atau sudah dikirim.'
+    //         ], 422);
+    //     }
+
+    //     // Update status menjadi dikirim
+    //     $transaksi->status_transaksi = 'dikirim';
+    //     $transaksi->tanggal_dikirim = now(); // tambahkan field ini jika belum ada
+    //     $transaksi->save();
+
+    //     // Kirim notifikasi ke penitip dan pembeli
+    //     foreach ([$transaksi->penitip, $transaksi->pembeli] as $user) {
+    //         if ($user && $user->fcm_token) {
+    //             sendFCMWithJWT(
+    //                 $user->fcm_token,
+    //                 '📦 Barang Sedang Dikirim',
+    //                 'Barang kamu sedang dikirim oleh kurir Reusemart.'
+    //             );
+    //         }
+    //     }
+
+    //     return response()->json([
+    //         'message' => 'Barang berhasil ditandai sebagai sedang dikirim.',
+    //         'status_transaksi' => $transaksi->status_transaksi,
+    //     ]);
+    // }
 
     public function jadwalkanPengirimanKurir(Request $request, $id_transaksi)
     {
@@ -513,6 +557,7 @@ class TransaksiController extends Controller
 
         $transaksi->id_pegawai = $kurir->id_pegawai;
         $transaksi->status_transaksi = 'dikirim';
+        $transaksi->tanggal_dikirim = now();
         $transaksi->save();
 
         // Notifikasi email ke pembeli, penitip, dan kurir (tanpa Mail class)
@@ -554,8 +599,9 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Jenis pengiriman bukan untuk ambil sendiri'], 422);
         }
 
-        $transaksi->status_transaksi = 'selesai';
+        $transaksi->status_transaksi = 'pengambilan mandiri';
         $transaksi->tanggal_pelunasan = now();
+        $transaksi->tanggal_dikirim = now();
         $transaksi->save();
 
         // Notifikasi email ke pembeli dan penitip
@@ -596,7 +642,6 @@ class TransaksiController extends Controller
         }
 
         $transaksi->status_transaksi = 'selesai';
-        $transaksi->tanggal_pelunasan = now(); // jika belum diset sebelumnya
         $transaksi->save();
 
         // Log (opsional)
