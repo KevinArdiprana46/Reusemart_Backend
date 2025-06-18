@@ -1025,13 +1025,6 @@ class TransaksiController extends Controller
         return response()->json(['message' => 'Semua proses final transaksi berhasil.']);
     }
 
-
-
-
-
-
-
-
     public function ambilPenitipanDariTransaksi($id_transaksi)
     {
         $transaksi = Transaksi::find($id_transaksi);
