@@ -273,7 +273,6 @@ class PenitipController extends Controller
             return response()->json(['message' => 'Unauthorized. Hanya admin yang dapat mengakses fitur ini.'], 403);
         }
 
-        //Rentang waktu bulan lalu
         $start = Carbon::now()->startOfMonth()->subMonth();
         $end = Carbon::now()->startOfMonth()->subSecond();
 
@@ -298,7 +297,6 @@ class PenitipController extends Controller
         //Reset badge semua penitip
         Penitip::query()->update(['badge' => 'Regular']);
 
-        //Tandai penitip sebagai top seller dan beri bonus
         $penitip = Penitip::find($topData->id_penitip);
         if ($penitip) {
             $penitip->badge = 'Top Seller';
@@ -311,6 +309,4 @@ class PenitipController extends Controller
             'penitip' => $penitip
         ], 200);
     }
-
-    
 }

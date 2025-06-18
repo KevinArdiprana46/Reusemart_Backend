@@ -453,13 +453,14 @@ class PenitipanController extends Controller
         return response()->json(['message' => 'Penitipan berhasil dihapus.']);
     }
 
-    public function getPenitipanBaru()
+    public function getPenitipanTertentu()
     {
-        $date = Carbon::now()->addDays(25);
+        $date = Carbon::now()->subDays(value: 30);
 
         $penitipan = Penitipan::with(['penitip', 'barang'])
+            ->where('id_penitip', 10)
             ->whereHas('barang') // hanya ambil penitipan yang punya barang
-            ->whereDate('tanggal_akhir', '>=', $date)
+            ->whereDate('tanggal_masuk', '>=', $date)
             ->orderBy('id_penitipan', 'desc')
             ->get();
 
@@ -519,17 +520,22 @@ class PenitipanController extends Controller
                         'tanggal_masuk' => $penitipan->tanggal_masuk,
                         'rating_barang' => $barang->rating_barang,
                         'tanggal_garansi' => $barang->tanggal_garansi ?? null,
-                        'foto_barang' => $barang->foto_barang->pluck('foto_barang'), // hanya nama file
+                        'foto_barang' => $barang->foto_barang->pluck('foto_barang'),
                     ];
                 }
             }
         }
+
+        usort($barangList, function ($a, $b) {
+            return $b['id_barang'] <=> $a['id_barang'];
+        });
 
         return response()->json([
             'message' => 'Riwayat penitipan berhasil diambil.',
             'data' => $barangList,
         ]);
     }
+
 
     public function sumbangBarangSukarela($id)
     {

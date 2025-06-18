@@ -198,6 +198,7 @@ class TransaksiController extends Controller
             ->whereHas('detailtransaksi.barang', function ($query) use ($penitip) {
                 $query->where('id_penitip', $penitip->id_penitip);
             })
+            ->where('status_transaksi', 'selesai')
             ->orderByDesc('created_at')
             ->get();
 
@@ -353,7 +354,7 @@ class TransaksiController extends Controller
             $barang->stock -= $item->jumlah;
             if ($barang->stock <= 0) {
                 $barang->stock = 0;
-                $barang->status_barang = 'sold out';
+                $barang->status_barang = 'terjual';
             }
             $barang->save();
         }
@@ -1110,16 +1111,83 @@ class TransaksiController extends Controller
                 'barang.harga_barang',
                 'penitipan.tanggal_masuk',
                 'transaksi.tanggal_pelunasan',
-                DB::raw('IFNULL(pegawai.komisi_hunter, 0) AS komisi_hunter'),
-                DB::raw('IFNULL(detailtransaksi.bonus_penitip, 0) AS bonus_penitip')
+                DB::raw("CASE 
+                        WHEN barang.id_pegawai IS NOT NULL 
+                        THEN barang.harga_barang * 0.05 
+                        ELSE 0 
+                     END AS komisiHunter"),
+                DB::raw("CASE 
+                        WHEN transaksi.status_transaksi = 'selesai' 
+                             AND DATEDIFF(transaksi.tanggal_pelunasan, penitipan.tanggal_masuk) < 7 
+                        THEN barang.harga_barang * 0.20 * 0.10 
+                        ELSE 0 
+                     END AS bonus_penitip"),
+                DB::raw("barang.harga_barang * 0.20 AS komisi_total"),
+                DB::raw("(barang.harga_barang * 0.20 
+                      - CASE WHEN barang.id_pegawai IS NOT NULL THEN barang.harga_barang * 0.05 ELSE 0 END 
+                      - CASE 
+                            WHEN transaksi.status_transaksi = 'selesai' 
+                                 AND DATEDIFF(transaksi.tanggal_pelunasan, penitipan.tanggal_masuk) < 7 
+                            THEN barang.harga_barang * 0.20 * 0.10 
+                            ELSE 0 
+                        END
+                    ) AS komisiReusemart_bersih")
             )
             ->whereMonth('transaksi.tanggal_pelunasan', $bulan)
             ->whereYear('transaksi.tanggal_pelunasan', $tahun)
+            ->where('transaksi.status_transaksi', 'selesai')
             ->get();
 
         return response()->json([
             'status' => 'success',
             'data' => $data
         ]);
+    }
+
+    public function laporanTransaksiPenitip($id_penitip, $bulan, $tahun)
+    {
+        $penitip = \App\Models\Penitip::find($id_penitip);
+        $nama_penitip = $penitip ? $penitip->nama_lengkap : '-';
+
+        $barangLaku = Barang::with([
+            'detailPenitipan.penitipan.penitip',
+            'detailTransaksi.transaksi'
+        ])
+            ->whereHas('detailPenitipan.penitipan', function ($q) use ($id_penitip) {
+                $q->where('id_penitip', $id_penitip);
+            })
+            ->whereHas('detailTransaksi.transaksi', function ($q) use ($bulan, $tahun) {
+                $q->where('status_transaksi', 'selesai')
+                    ->whereMonth('tanggal_pelunasan', $bulan)
+                    ->whereYear('tanggal_pelunasan', $tahun);
+            })
+            ->get();
+
+        $laporan = $barangLaku->map(function ($barang) {
+            $tanggalMasuk = optional($barang->detailPenitipan->penitipan)->tanggal_masuk;
+            $tanggalLaku = optional($barang->detailTransaksi->transaksi)->tanggal_pelunasan;
+
+            $hargaAsli = (int) $barang->harga_barang;
+            $komisi = $hargaAsli * 0.20;
+            $hargaBersih = $hargaAsli - $komisi;
+
+            $selisihHari = $tanggalMasuk && $tanggalLaku
+                ? Carbon::parse($tanggalMasuk)->diffInDays(Carbon::parse($tanggalLaku))
+                : null;
+
+            $bonus = ($selisihHari !== null && $selisihHari <= 7)
+                ? round(0.10 * $komisi)
+                : null;
+
+            return [
+                'kode_produk' => 'K' . str_pad($barang->id_barang, 3, '0', STR_PAD_LEFT),
+                'nama_produk' => $barang->nama_barang,
+                'tanggal_masuk' => $tanggalMasuk ? Carbon::parse($tanggalMasuk)->format('d/m/Y') : '-',
+                'tanggal_laku' => $tanggalLaku ? Carbon::parse($tanggalLaku)->format('d/m/Y') : '-',
+                'harga_bersih' => $hargaBersih,
+                'bonus' => $bonus ?? '-',
+                'pendapatan' => $hargaBersih + ($bonus ?? 0),
+            ];
+        });
     }
 }
