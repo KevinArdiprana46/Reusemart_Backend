@@ -13,7 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withSchedule(function ($schedule) {
         $schedule->command('notifikasi:penitipan-h3-h')->dailyAt('06:00');;
-        $schedule->command('barang:konversi-donasi')->dailyAt('01:00');
+        $schedule->command('barang:konversi-donasi')->dailyAt('06:00');
+        $schedule->command('barang:mark-expired')->dailyAt('06:00');
     })
     ->withMiddleware(function (Middleware $middleware) {
         //

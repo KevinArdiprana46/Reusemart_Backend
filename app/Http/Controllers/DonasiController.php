@@ -7,6 +7,7 @@ use App\Models\Donasi;
 use App\Models\Barang;
 use App\Models\Penitip;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class DonasiController extends Controller
 {
@@ -19,18 +20,29 @@ class DonasiController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nama_barang' => 'sometimes|string|max:255',
-            'pesan_request' => 'sometimes|string',
-            'status_donasi' => 'sometimes|nullable|string|max:255',
-            'tanggal_donasi' => 'sometimes|nullable|date',
-            'id_barang' => 'sometimes|nullable|exists:barang,id_barang',
-            'id_organisasi' => 'sometimes|nullable|exists:organisasi,id_organisasi',
+            'nama_barang' => 'required|string|max:255',
+            'kategori_barang' => 'required|string|max:255',
+            'pesan_request' => 'required|string',
         ]);
 
-        $donasi = Donasi::create($validated);
+        $user = Auth::user();
+        if (!$user || $user->id_role != 4) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $donasi = Donasi::create([
+            'nama_barang' => $validated['nama_barang'],
+            'kategori_barang' => $validated['kategori_barang'],
+            'pesan_request' => $validated['pesan_request'],
+            'status_donasi' => 'diminta',
+            'tanggal_donasi' => null,
+            'id_barang' => null,
+            'id_organisasi' => $user->id_organisasi,
+        ]);
+
         return response()->json([
-            'message' => 'Donasi berhasil ditambahkan.',
-            'data' => $donasi
+            'message' => 'Request donasi berhasil ditambahkan.',
+            'data' => $donasi,
         ], 201);
     }
 
@@ -196,16 +208,12 @@ class DonasiController extends Controller
         ]);
     }
 
-
-
-
-
-
     public function updateDonasi(Request $request, $id)
     {
         $request->validate([
             'tanggal_donasi' => 'required|date',
             'nama_penerima' => 'required|string|max:255',
+            'status_donasi' => 'required|string|in:disiapkan,siap dikirim',
         ]);
 
         $donasi = Donasi::find($id);
@@ -222,6 +230,7 @@ class DonasiController extends Controller
 
         $donasi->tanggal_donasi = $request->tanggal_donasi;
         $donasi->nama_penerima = $request->nama_penerima;
+        $donasi->status_donasi = $request->status_donasi;
         $donasi->save();
 
         return response()->json([

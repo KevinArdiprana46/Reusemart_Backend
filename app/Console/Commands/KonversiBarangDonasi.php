@@ -19,7 +19,7 @@ class KonversiBarangDonasi extends Command
         $affected = DB::table('barang')
             ->join('detailpenitipan', 'barang.id_barang', '=', 'detailpenitipan.id_barang')
             ->join('penitipan', 'detailpenitipan.id_penitipan', '=', 'penitipan.id_penitipan')
-            ->where('barang.status_barang', 'tersedia')
+            ->where('barang.status_barang', 'expired')
             ->whereDate('penitipan.batas_pengambilan', '<', $now)
             ->update(['barang.status_barang' => 'donasi']);
 

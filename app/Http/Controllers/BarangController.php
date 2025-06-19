@@ -7,10 +7,13 @@ use Illuminate\Http\Request;
 use App\Models\Barang;
 use App\Models\FotoBarang;
 use App\Models\Penitip;
+use App\Models\Penitipan;
 use App\Models\DetailPenitipan;
 use App\Models\DetailTransaksi;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class BarangController extends Controller
 {
@@ -174,13 +177,19 @@ class BarangController extends Controller
         return response()->json($result);
     }
 
-    public function getBarangDonasi()
+    public function getBarangDonasi(Request $request)
     {
-        $barang = Barang::where('status_barang', 'donasi')
-            ->where('stock', '>', 0)
-            ->get();
+        $kategori = $request->header('X-Kategori-Barang');
+        $query = Barang::where('status_barang', 'donasi')
+            ->where('stock', '>', 0);
 
-        return response()->json($barang);
+        if ($kategori) {
+            $query->where('kategori_barang', $kategori);
+        }
+
+        $result = $query->get();
+
+        return response()->json($result);
     }
 
     public function getBarangByKategori($kategori)
@@ -481,10 +490,11 @@ class BarangController extends Controller
 
         $barang = Barang::with(['pegawai', 'detailpenitipan.penitipan.penitip'])
             ->where('status_barang', 'tersedia')
+            ->whereHas('detailpenitipan') // hanya ambil barang yang punya detailpenitipan
             ->get();
 
         $result = $barang->map(function ($b) {
-            $detail = optional($b->detailpenitipan)->first();
+            $detail = optional($b->detailpenitipan)->where('id_barang', $b->id_barang)->first();
             $penitipan = optional($detail)->penitipan;
             $penitip = optional($penitipan)->penitip;
             $hunter = optional($b->pegawai);
@@ -511,6 +521,24 @@ class BarangController extends Controller
         return response()->json([
             'status' => 'success',
             'data' => $result,
+        ]);
+    }
+
+    public function konversiDonasi()
+    {
+        $now = Carbon::now();
+
+        // Ambil barang yang masih "tersedia" dan melewati batas pengambilan
+        $data = DB::table('barang')
+            ->join('detailpenitipan', 'barang.id_barang', '=', 'detailpenitipan.id_barang')
+            ->join('penitipan', 'detailpenitipan.id_penitipan', '=', 'penitipan.id_penitipan')
+            ->where('barang.status_barang', 'expired')
+            ->whereDate('penitipan.batas_pengambilan', '<', $now)
+            ->update(['barang.status_barang' => 'donasi']);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $data,
         ]);
     }
 }

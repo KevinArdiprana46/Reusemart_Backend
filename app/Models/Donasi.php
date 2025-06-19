@@ -8,7 +8,7 @@ use App\Models\Barang;
 
 class Donasi extends Model
 {
-    
+
     protected $table = 'donasi';
     protected $primaryKey = 'id_donasi';
     public $incrementing = true;
@@ -17,6 +17,7 @@ class Donasi extends Model
 
     protected $fillable = [
         'nama_barang',
+        'kategori_barang',
         'pesan_request',
         'status_donasi',
         'tanggal_donasi',
