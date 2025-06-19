@@ -31,13 +31,8 @@ class Barang extends Model
         return $this->belongsTo(Pegawai::class, 'id_pegawai');
     }
 
-    //Relasi Dengan Penitip
     public function penitipan()
     {
-        // SEBELUM:
-        // return $this->hasOne(Penitipan::class, 'id_barang');
-
-        // SESUDAH (karena many-to-many melalui detail_penitipan)
         return $this->belongsToMany(Penitipan::class, 'detailpenitipan', 'id_barang', 'id_penitipan');
     }
 
@@ -66,9 +61,9 @@ class Barang extends Model
         return $this->hasMany(FotoBarang::class, 'id_barang');
     }
 
-    public function penitip()
-    {
-        return $this->belongsTo(Penitip::class, 'detailpenitipan', 'id_barang', 'id_penitip')->limit(1);
-    }
+    // public function penitip()
+    // {
+    //     return $this->belongsTo(Penitip::class, 'detailpenitipan', 'id_barang', 'id_penitip')->limit(1);
+    // }
 
 }

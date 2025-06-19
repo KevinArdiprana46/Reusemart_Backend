@@ -33,7 +33,7 @@ class BarangController extends Controller
 
     public function getBarangRekomendasi()
     {
-        $barang = Barang::with('foto_barang')
+        $barang = Barang::with('foto_barang', 'detailpenitipan')
             ->where('status_barang', 'tersedia')
             ->orderBy('id_barang', 'desc')
             ->limit(20)
@@ -73,7 +73,7 @@ class BarangController extends Controller
         ]);
 
         $barang = Barang::create([
-            'id_pegawai' => $request->id_pegawai, // 🧑‍🌾 Hunter diset manual dari frontend
+            'id_pegawai' => $request->id_pegawai,
             'nama_barang' => $request->nama_barang,
             'kategori_barang' => $request->kategori_barang,
             'deskripsi' => $request->deskripsi,
@@ -419,6 +419,7 @@ class BarangController extends Controller
     public function storeBarangDalamPenitipan(Request $request, $id_penitipan)
     {
         $request->validate([
+            'id_pegawai' => 'nullable|exists:pegawai,id_pegawai',
             'nama_barang' => 'required|string|max:255',
             'kategori_barang' => 'required|string|max:255',
             'deskripsi' => 'required|string',
@@ -429,11 +430,12 @@ class BarangController extends Controller
             'tanggal_garansi' => 'nullable|date',
             'foto_barang.*' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
+        Log::info('🔥 ID Pegawai dari request:', [$request->id_pegawai]);
 
         try {
             // Simpan barang
             $barang = Barang::create([
-                'id_pegawai' => $request->id_pegawai, // 🧑‍🌾 Hunter diset manual dari frontend
+                'id_pegawai' => $request->id_pegawai,
                 'nama_barang' => $request->nama_barang,
                 'kategori_barang' => $request->kategori_barang,
                 'deskripsi' => $request->deskripsi,

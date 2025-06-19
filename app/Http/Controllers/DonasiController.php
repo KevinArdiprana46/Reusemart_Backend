@@ -103,18 +103,6 @@ class DonasiController extends Controller
 
     public function getRiwayatDonasi()
     {
-        // Logging awal untuk memastikan method ini dipanggil
-        // Log::info('Masuk ke getRiwayatDonasi()');
-
-        // $user = auth()->user();
-
-        // if (!$user) {
-        //     Log::warning('Akses ditolak: tidak ada user terautentikasi.');
-        //     return response()->json(['message' => 'Unauthenticated'], 401);
-        // }
-
-        // Log::info("User yang mengakses: {$user->email} | role: {$user->id_role}");
-
         $riwayat = Donasi::with(['organisasi', 'barang'])
             ->where('status_donasi', '!=', 'diminta')
             ->get();
@@ -166,12 +154,16 @@ class DonasiController extends Controller
             'status_donasi' => 'disiapkan',
         ]);
 
-        // Kurangi stok barang
         $barang->stock -= 1;
         $barang->save();
 
-        // Ambil penitip melalui relasi pivot
-        $penitip = optional($barang->detailPenitipan->first()?->penitipan)->penitip;
+        $detail = $barang->detailPenitipan()
+            ->with('penitipan.penitip')
+            ->get()
+            ->sortByDesc(fn($d) => $d->penitipan?->tanggal_masuk ?? '1970-01-01')
+            ->first();
+
+        $penitip = optional($detail?->penitipan)->penitip;
 
         // Tambahkan poin dan kirim notifikasi jika penitip ditemukan
         $poinTambahan = 0;
