@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliCon
 Route::middleware('auth:sanctum')->post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pegawai', [PegawaiController::class, 'updateFcmTokenPegawai']);
 
+
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
 Route::post('/login', [LoginController::class, 'login']);
@@ -128,11 +129,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/saldo/penitip', [TransaksiController::class, 'tambahSaldoPenitip']);
     // Poin
     Route::get('/poin/pembeli', [TransaksiController::class, 'tambahPoinPembeli']);
+    //Kirim barang oleh kurir
+    Route::post('/kurir/transaksi/kirim/{id_transaksi}', [TransaksiController::class, 'kirimBarang']);
+    Route::get('/kurir/transaksi', [TransaksiController::class, 'getTransaksiKurir']);
+    Route::get('/kurir/transaksi/dikirim', [TransaksiController::class, 'pengirimanDikirim']);
+    Route::post('/kurir/transaksi/diterima/{id}', [TransaksiController::class, 'diterimaOlehKurir']);
+    Route::get('/kurir/transaksi/history', [TransaksiController::class, 'getHistoryKurir']);
+
     // Proses final satu transaksi (opsional efisien)
     Route::post('/transaksi/proses-final/{id}', [TransaksiController::class, 'prosesFinalTransaksi']);
     Route::get('/nota/{id_transaksi}/pdf', [TransaksiController::class, 'generateNotaPDF']);
     Route::get('/transaksi/semua', [TransaksiController::class, 'semuaTransaksi']);
     Route::get('/transaksi/laporan-komisi', [TransaksiController::class, 'laporanKomisiBulanan']);
+    Route::get('/transaksi/valid', [TransaksiController::class, 'getRiwayatValid']);
+    Route::post('/transaksi/{id}/batalkan', [TransaksiController::class, 'batalkanTransaksiPembeli']);
 });
 
 //Laporan
@@ -140,6 +150,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/laporan/kategori-barang', [LaporanController::class, 'laporanPenjualanKategori']);
     Route::get('/laporan/barang-penitipan-habis', [LaporanController::class, 'barangPenitipanHabis']);
     Route::get('/laporan/penjualan-bulanan', [LaporanController::class, 'laporanPenjualanBulanan']);
+    Route::get('/donasi/laporan/barang', [LaporanController::class, 'laporanDonasiBarang']);
+    Route::get('/donasi/request/laporan', [LaporanController::class, 'laporanRequestDonasi']);
+    Route::get('/laporan/transaksi-penitip/{id_penitip}/{bulan}/{tahun}', [LaporanController::class, 'laporanTransaksiPenitip']);
+    Route::get('/laporan/kurir', [LaporanController::class, 'laporanKurir']);
+
 });
 
 // 👷‍♂️ PEGAWAI

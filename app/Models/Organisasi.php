@@ -32,4 +32,9 @@ class Organisasi extends Authenticatable
     {
         return $this->belongsTo(Role::class, 'id_role');
     }
+    public function donasi()
+    {
+        return $this->hasMany(Donasi::class, 'id_organisasi');
+    }
+
 }

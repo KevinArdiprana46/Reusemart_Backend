@@ -26,6 +26,8 @@ class Transaksi extends Model
         'poin_reward',
         'poin_digunakan',
         'komisi_reusemart',
+        'tanggal_dikirim',
+        'status_pengiriman',
     ];
 
     // Relasi ke pembeli
