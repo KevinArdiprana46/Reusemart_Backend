@@ -39,7 +39,8 @@ class PenitipanController extends Controller
         $penitipan = Penitipan::with([
             'penitip',
             'barang.foto_barang',
-            'pegawaiqc'
+            'pegawaiqc',
+            'barang.pegawai'
         ])->find($id);
 
         if (!$penitipan) {
@@ -459,7 +460,7 @@ class PenitipanController extends Controller
 
         $penitipan = Penitipan::with(['penitip', 'barang'])
             ->where('id_penitip', 10)
-            ->whereHas('barang') // hanya ambil penitipan yang punya barang
+            ->whereHas('barang') 
             ->whereDate('tanggal_masuk', '>=', $date)
             ->orderBy('id_penitipan', 'desc')
             ->get();

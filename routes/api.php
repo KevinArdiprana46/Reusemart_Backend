@@ -66,6 +66,7 @@ Route::prefix('penitip')->middleware('auth:sanctum')->group(function () {
     Route::put('/update/{id}', [PenitipController::class, 'update']);
     Route::delete('/delete/{id}', [PenitipController::class, 'destroy']);
     Route::post('/generate-top-seller', [PenitipController::class, 'generateTopSeller']);
+    Route::post('/penarikan-saldo', [PenitipController::class, 'tarikSaldo']);
 });
 
 // 🧾 DONASI

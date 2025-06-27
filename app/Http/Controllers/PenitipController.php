@@ -309,4 +309,30 @@ class PenitipController extends Controller
             'penitip' => $penitip
         ], 200);
     }
+
+    public function tarikSaldo(Request $request){
+        $user = Auth::user();
+        if (!$user || $user->id_role != 3) {
+            return response()->json(['message' => 'Unauthorized. Hanya admin yang dapat mengakses fitur ini.'], 403);
+        }
+
+        $penitip = Penitip::find($user->id_penitip);
+        if (!$penitip) {
+            return response()->json(['message' => 'Penitip tidak ditemukan.'], 404);
+        }
+
+        $penarikan = $request->nominal_tarik * 0.05;
+
+        if ($penarikan > $penitip->saldo) {
+            return response()->json(['message' => 'Saldo tidak mencukupi.'], 400);
+        }
+
+        $penitip->saldo -= $penarikan;
+        $penitip->save();
+
+        return response()->json([
+            'message' => 'Saldo berhasil ditarik.',
+            'penitip' => $penitip
+        ], 200);
+    }
 }

@@ -543,4 +543,87 @@ class BarangController extends Controller
             'data' => $data,
         ]);
     }
+    
+    // public function indexKomisi(Request $request)
+    // {
+    //     $id_hunter = $request->id_pegawai;
+
+    //     $komisi_history = KomisiHunterHistory::whereHas('barang', function ($query) use ($id_hunter) {
+    //         $query->where('id_pegawai', $id_hunter);
+    //     })->with('barang')->get();
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'data' => $komisi_history
+    //     ]);
+    // }
+
+    // // Simpan komisi baru berdasarkan barang yang laku
+    // public function storeKomisi(Request $request)
+    // {
+    //     $request->validate([
+    //         'id_barang' => 'required|exists:barang,id_barang',
+    //         'keterangan' => 'nullable|string',
+    //     ]);
+
+    //     $barang = Barang::with('pegawai')->where('id_barang', $request->id_barang)->first();
+
+    //     if (!$barang) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Barang tidak ditemukan.'
+    //         ], 404);
+    //     }
+
+    //     $komisi = KomisiHunterHistory::create([
+    //         'id_barang' => $barang->id_barang,
+    //         'jumlah_komisi' => $barang->harga_barang * 0.05, // rumus tetap bisa diubah sesuai kebutuhan
+    //         'keterangan' => $request->keterangan,
+    //     ]);
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'data' => $komisi,
+    //     ]);
+    // }
+
+    // // Tampilkan satu data komisi lengkap dengan barang dan pegawai
+    // public function showKomisi($id)
+    // {
+    //     $komisi = KomisiHunterHistory::with('barang.pegawai')->find($id);
+
+    //     if (!$komisi) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Data komisi tidak ditemukan.'
+    //         ], 404);
+    //     }
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'data' => $komisi,
+    //     ]);
+    // }
+
+    // // Hapus komisi berdasarkan ID
+    // public function destroyKomisi($id)
+    // {
+    //     $komisi = KomisiHunterHistory::find($id);
+
+    //     $bulanAwal = Carbon::now()->startOfMonth()
+
+    //     if (!$komisi) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'message' => 'Komisi tidak ditemukan',
+    //         ], 404);
+    //     }
+
+    //     $komisi->delete();
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'message' => 'Komisi berhasil dihapus',
+    //     ]);
+    // }
 }
