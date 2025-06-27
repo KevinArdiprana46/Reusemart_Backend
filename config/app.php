@@ -73,6 +73,6 @@ return [
          * Application Service Providers...
          */
         App\Providers\AppServiceProvider::class,
-        App\Providers\AuthServiceProvider::class, // ⬅️ Pastikan ini ada
+        App\Providers\AuthServiceProvider::class,
     ],
 ];
