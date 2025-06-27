@@ -1184,7 +1184,7 @@ class TransaksiController extends Controller
 
     public function laporanTransaksiPenitip($id_penitip, $bulan, $tahun)
     {
-        $penitip = \App\Models\Penitip::find($id_penitip);
+        $penitip = Penitip::find($id_penitip);
         $nama_penitip = $penitip ? $penitip->nama_lengkap : '-';
 
         $barangLaku = Barang::with([
