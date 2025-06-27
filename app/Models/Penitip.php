@@ -30,7 +30,6 @@ class Penitip extends Authenticatable
         'gender',
         'tanggal_lahir',
         'saldo',
-        'komisi',
         'bonus',
         'image_user',
         'id_role',
