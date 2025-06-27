@@ -18,26 +18,16 @@ class RouteServiceProvider extends ServiceProvider
             $email = $notifiable->getEmailForPasswordReset();
             return "http://localhost:5173/reset-password?token=$token&email=$email";
         });
-    }
 
-    public function map()
-    {
-        $this->mapApiRoutes();
-        $this->mapWebRoutes();
-    }
+        $this->routes(function () {
+            Route::middleware('api')
+                ->prefix('api')
+                ->namespace($this->namespace)
+                ->group(base_path('routes/api.php'));
 
-    protected function mapWebRoutes()
-    {
-        Route::middleware('web')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/web.php'));
-    }
-
-    protected function mapApiRoutes()
-    {
-        Route::prefix('api')
-            ->middleware('api')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/api.php'));
+            Route::middleware('web')
+                ->namespace($this->namespace)
+                ->group(base_path('routes/web.php'));
+        });
     }
 }
