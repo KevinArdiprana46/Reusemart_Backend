@@ -29,6 +29,9 @@ Route::get('/debug-cors', function () {
         'cors_allowed_origins' => config('cors.allowed_origins'),
     ]);
 });
+Route::get('/debug-middleware', function () {
+    return app()->getMiddleware();
+});
 
 //FCM TOKEN
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
