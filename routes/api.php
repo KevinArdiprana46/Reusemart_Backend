@@ -29,12 +29,6 @@ Route::get('/debug-cors', function () {
         'cors_allowed_origins' => config('cors.allowed_origins'),
     ]);
 });
-// Route::options('/{any}', function () {
-//     return response()->json(['message' => 'Preflight OK']);
-// })->where('any', '.*')->middleware('api');
-Route::options('/test-cors', function () {
-    return response()->json(['message' => 'Preflight OK']);
-})->middleware('api');
 
 //FCM TOKEN
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
@@ -44,7 +38,7 @@ Route::middleware('auth:sanctum')->post('/update-fcm-token-pegawai', [PegawaiCon
 
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
-Route::post('/login', [LoginController::class, 'login'])->middleware('api');
+Route::post('/login', [LoginController::class, 'login']);
 Route::post('/register', [PembeliController::class, 'register']);
 Route::post('/password/email', [ResetPasswordController::class, 'sendResetLinkEmail']);
 Route::post('/password/reset', [ResetPasswordController::class, 'reset']);
