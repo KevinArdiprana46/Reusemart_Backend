@@ -70,10 +70,11 @@ class LoginController extends Controller
         Log::info("User login: {$user->email} sebagai role: $role");
 
         return response()->json([
-            'token' => $token,
-            'token_type'   => 'Bearer',
-            'role'         => $role,
-            'user'         => $user,
-        ]);
+            'token'       => $token,
+            'token_type'  => 'Bearer',
+            'role'        => $role,
+            'user'        => $user,
+        ])->header('X-Laravel-Debug', '✅ Login route aktif')
+            ->header('X-Debug-CORS', '✅ HandleCors seharusnya aktif');
     }
 }
