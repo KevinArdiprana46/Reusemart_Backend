@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use App\Models\Jabatan;
 use App\Models\Transaksi;
 
@@ -49,6 +50,7 @@ class PegawaiController extends Controller
 
     public function store(Request $request)
     {
+        Log::info('Request store pegawai masuk', $request->all());
         $validator = Validator::make($request->all(), [
             'id_jabatan' => 'nullable|integer|exists:jabatan,id_jabatan',
             'nama_lengkap' => 'required|string|max:255',
@@ -266,60 +268,60 @@ class PegawaiController extends Controller
 
 
     public function getDetailKomisiHunter($id_transaksi)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    if (!$user || $user->id_jabatan != 5) {
-        return response()->json(['message' => 'Unauthorized'], 403);
-    }
-
-    $transaksi = Transaksi::with([
-        'pembeli',
-        'detailTransaksi.barang.foto_barang',
-        'detailTransaksi.barang.detailpenitipan.penitipan.penitip'
-    ])->findOrFail($id_transaksi);
-
-    $detail = [];
-    $totalKomisi = 0;
-
-    foreach ($transaksi->detailTransaksi as $dt) {
-        $barang = $dt->barang;
-
-        if (
-            $barang &&
-            $barang->id_pegawai == $user->id_pegawai &&
-            strtolower($barang->status_barang) === 'terjual'
-        ) {
-            $fotoUrls = $barang->foto_barang->map(function ($foto) {
-                return asset('storage/' . $foto->foto_barang);
-            });
-
-            $penitip = optional($barang->detailpenitipan->penitipan->penitip);
-
-            $komisi = round(($barang->harga_barang ?? 0) * 0.05);
-            $totalKomisi += $komisi;
-
-            $detail[] = [
-                'nama_barang' => $barang->nama_barang ?? '-',
-                'harga_barang' => $barang->harga_barang ?? 0,
-                'kategori' => $barang->kategori_barang ?? '-',
-                'penitip' => $penitip->nama_lengkap ?? '-',
-                'foto_barang' => $fotoUrls,
-                'komisi' => $komisi,
-            ];
+        if (!$user || $user->id_jabatan != 5) {
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
-    }
 
-    return response()->json([
-        'id_transaksi' => $transaksi->id_transaksi,
-        'tanggal' => $transaksi->tanggal_pelunasan,
-        'total_harga' => $transaksi->total_harga,
-        'status' => $transaksi->status_transaksi,
-        'pembeli' => optional($transaksi->pembeli)->nama_lengkap ?? '-',
-        'komisi_anda' => $totalKomisi,
-        'detail_komisi' => $detail
-    ]);
-}
+        $transaksi = Transaksi::with([
+            'pembeli',
+            'detailTransaksi.barang.foto_barang',
+            'detailTransaksi.barang.detailpenitipan.penitipan.penitip'
+        ])->findOrFail($id_transaksi);
+
+        $detail = [];
+        $totalKomisi = 0;
+
+        foreach ($transaksi->detailTransaksi as $dt) {
+            $barang = $dt->barang;
+
+            if (
+                $barang &&
+                $barang->id_pegawai == $user->id_pegawai &&
+                strtolower($barang->status_barang) === 'terjual'
+            ) {
+                $fotoUrls = $barang->foto_barang->map(function ($foto) {
+                    return asset('storage/' . $foto->foto_barang);
+                });
+
+                $penitip = optional($barang->detailpenitipan->penitipan->penitip);
+
+                $komisi = round(($barang->harga_barang ?? 0) * 0.05);
+                $totalKomisi += $komisi;
+
+                $detail[] = [
+                    'nama_barang' => $barang->nama_barang ?? '-',
+                    'harga_barang' => $barang->harga_barang ?? 0,
+                    'kategori' => $barang->kategori_barang ?? '-',
+                    'penitip' => $penitip->nama_lengkap ?? '-',
+                    'foto_barang' => $fotoUrls,
+                    'komisi' => $komisi,
+                ];
+            }
+        }
+
+        return response()->json([
+            'id_transaksi' => $transaksi->id_transaksi,
+            'tanggal' => $transaksi->tanggal_pelunasan,
+            'total_harga' => $transaksi->total_harga,
+            'status' => $transaksi->status_transaksi,
+            'pembeli' => optional($transaksi->pembeli)->nama_lengkap ?? '-',
+            'komisi_anda' => $totalKomisi,
+            'detail_komisi' => $detail
+        ]);
+    }
 
 
 
