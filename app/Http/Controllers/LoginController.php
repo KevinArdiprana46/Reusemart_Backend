@@ -59,9 +59,15 @@ class LoginController extends Controller
             }
         } else {
             //gunakan Hash::check untuk user biasa
+            Log::info("Cek password untuk {$user->email}");
+            Log::info("Hash DB: {$user->password}");
+            Log::info("Input: $password");
+
             if (!Hash::check($password, $user->password)) {
+                Log::warning("Password tidak cocok untuk {$user->email}");
                 return response()->json(['message' => 'Password salah.'], 401);
             }
+            Log::info("Password cocok untuk {$user->email}");
         }
 
         $token = $user->createToken('auth_token')->plainTextToken;
