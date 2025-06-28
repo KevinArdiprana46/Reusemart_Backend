@@ -24,13 +24,13 @@ use App\Http\Controllers\{
 use App\Models\Transaksi;
 
 //test debug
-Route::options('/{any}', function (Request $request) {
-    return response()->json([], 204);
-})->where('any', '.*');
 Route::get('/debug-cors', function () {
     return response()->json([
         'cors_allowed_origins' => config('cors.allowed_origins'),
     ]);
+});
+Route::options('/test-cors', function (Request $request) {
+    return response()->json(['message' => 'Preflight OK']);
 });
 
 //FCM TOKEN
