@@ -17,7 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('barang:mark-expired')->dailyAt('06:00');
     })
     ->withMiddleware(function (Middleware $middleware) {
-         $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+        $middleware->append('HandleCors');
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
