@@ -15,15 +15,10 @@ class LoginController extends Controller
 {
     public function login(Request $request)
     {
-        Log::info('Isi request login:', $request->all());
         $request->validate([
             'email'    => 'required|email',
             'password' => 'required|string',
         ]);
-
-        Log::info('Tipe data email:', gettype($request->email));
-        Log::info('Tipe data password:', gettype($request->password));
-
 
         $email = $request->email;
         $password = $request->password;
@@ -62,18 +57,13 @@ class LoginController extends Controller
             if ($user->password !== $password) {
                 return response()->json(['message' => 'Password salah.'], 401);
             }
-        } else {
-            //gunakan Hash::check untuk user biasa
-            Log::info("Cek password untuk {$user->email}");
-            Log::info("Hash DB: {$user->password}");
-            Log::info("Input: $password");
-
-            if (!Hash::check($password, $user->password)) {
-                Log::warning("Password tidak cocok untuk {$user->email}");
-                return response()->json(['message' => 'Password salah.'], 401);
-            }
-            Log::info("Password cocok untuk {$user->email}");
-        }
+        // } else {
+        //     //gunakan Hash::check untuk user biasa
+        //     if (!Hash::check($password, $user->password)) {
+        //         Log::warning("Password tidak cocok untuk {$user->email}");
+        //         return response()->json(['message' => 'Password salah.'], 401);
+        //     }
+        // }
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
