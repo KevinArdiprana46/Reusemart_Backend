@@ -51,13 +51,12 @@ class PegawaiController extends Controller
     public function store(Request $request)
     {
         try {
-            Log::info('🚀 Masuk ke PegawaiController@store');
-            Log::info('Payload:', $request->all());
+            // Log awal
+            Log::info('Masuk store pegawai', [
+                'request' => $request->except(['password', 'image_user']),
+            ]);
 
-            foreach ($request->all() as $key => $value) {
-                Log::info("Field $key tipe: " . gettype($value));
-            }
-
+            // Validasi awal
             $validator = Validator::make($request->all(), [
                 'id_jabatan' => 'nullable|integer|exists:jabatan,id_jabatan',
                 'nama_lengkap' => 'required|string|max:255',
@@ -68,18 +67,21 @@ class PegawaiController extends Controller
                 'tanggal_lahir' => 'required|date',
                 'password' => 'required|string|min:6',
                 'komisi_hunter' => 'nullable|numeric|min:0',
-                'image_user' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+                'image_user' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
             ]);
 
             if ($validator->fails()) {
-                Log::warning('❌ Validasi gagal', $validator->errors()->toArray());
+                Log::warning('Validasi gagal', ['errors' => $validator->errors()]);
                 return response()->json(['errors' => $validator->errors()], 422);
             }
 
-            $imagePath = $request->hasFile('image_user')
-                ? $request->file('image_user')->store('pegawai/image_user', 'public')
-                : null;
+            // Handle image
+            $imagePath = null;
+            if ($request->hasFile('image_user') && $request->file('image_user')->isValid()) {
+                $imagePath = $request->file('image_user')->store('pegawai/image_user', 'public');
+            }
 
+            // Simpan data
             $pegawai = Pegawai::create([
                 'id_jabatan' => $request->id_jabatan,
                 'id_role' => 1,
@@ -94,7 +96,7 @@ class PegawaiController extends Controller
                 'image_user' => $imagePath ?? 'default.jpg',
             ]);
 
-            Log::info('✅ Pegawai berhasil disimpan', ['id' => $pegawai->id_pegawai]);
+            Log::info('Pegawai berhasil ditambahkan', ['id' => $pegawai->id_pegawai]);
 
             return response()->json([
                 'message' => 'Pegawai berhasil ditambahkan',
@@ -102,16 +104,14 @@ class PegawaiController extends Controller
                 'image_url' => $imagePath ? asset('storage/' . $imagePath) : null,
             ], 201);
         } catch (\Throwable $e) {
-            Log::error('🔥 ERROR PegawaiController@store', [
+            // Tangkap semua error runtime
+            Log::error('Gagal tambah pegawai', [
                 'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString(),
             ]);
-
             return response()->json([
-                'message' => 'Terjadi kesalahan internal.',
-                'error' => $e->getMessage()
+                'message' => 'Terjadi kesalahan pada server.',
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
