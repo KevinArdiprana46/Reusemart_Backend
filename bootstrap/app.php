@@ -19,7 +19,6 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->appendToGroup('api', HandleCors::class);
-        $middleware->append(\App\Http\Middleware\SafeTrimStrings::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

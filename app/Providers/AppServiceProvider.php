@@ -14,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->app->bind(
             \Illuminate\Foundation\Http\Middleware\TrimStrings::class,
-            \App\Http\Middleware\SafeTrimStrings::class
+            \App\Http\Middleware\NoopTrimStrings::class
         );
     }
 
