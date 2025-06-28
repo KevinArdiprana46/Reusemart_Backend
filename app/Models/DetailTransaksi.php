@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\SafeToArray;
 
 class DetailTransaksi extends Model
 {
+    use SafeToArray;
+    
     protected $table = 'detailtransaksi';
     protected $primaryKey = 'id_detail';
     public $timestamps = false;

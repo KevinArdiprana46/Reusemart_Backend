@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use App\Traits\SafeToArray;
 
 class DetailPenitipan extends Pivot
 {
+    use SafeToArray;
+    
     protected $table = 'detailpenitipan';
     public $timestamps = false;
 

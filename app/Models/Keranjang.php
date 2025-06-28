@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Barang;
-
+use App\Traits\SafeToArray;
 
 class Keranjang extends Model
 {
-    use HasFactory;
+    use HasFactory, SafeToArray;
 
     protected $table = 'keranjang';
     protected $primaryKey = 'id';

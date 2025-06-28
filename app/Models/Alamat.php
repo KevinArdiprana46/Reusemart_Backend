@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\SafeToArray;
 
 class Alamat extends Model
 {
-    use HasFactory;
+    use HasFactory, SafeToArray;
 
     protected $table = 'alamat';
     protected $primaryKey = 'id_alamat';

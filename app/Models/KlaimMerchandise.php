@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Traits\SafeToArray;
 
 class KlaimMerchandise extends Model
 {
+    use SafeToArray;
+    
     protected $table = 'klaim_merchandise';
     protected $primaryKey = 'id_klaim';
     public $timestamps = false;

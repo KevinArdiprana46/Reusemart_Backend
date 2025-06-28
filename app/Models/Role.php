@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\SafeToArray;
 
 class Role extends Model
 {
-    use HasFactory;
+    use HasFactory, SafeToArray;
 
     protected $table = 'role';
     protected $primaryKey = 'id_role';

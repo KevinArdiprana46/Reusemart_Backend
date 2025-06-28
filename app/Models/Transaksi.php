@@ -3,10 +3,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Traits\SafeToArray;
 
 class Transaksi extends Model
 {
-    use HasFactory;
+    use HasFactory, SafeToArray;
     public $timestamps = true;
     protected $table = 'transaksi';
     protected $primaryKey = 'id_transaksi';
