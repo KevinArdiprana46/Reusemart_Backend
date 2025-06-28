@@ -32,7 +32,9 @@ Route::get('/debug-cors', function () {
 // Route::options('/{any}', function () {
 //     return response()->json(['message' => 'Preflight OK']);
 // })->where('any', '.*')->middleware('api');
-
+Route::options('/test-cors', function () {
+    return response()->json(['message' => 'Preflight OK']);
+})->middleware('api');
 
 //FCM TOKEN
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
