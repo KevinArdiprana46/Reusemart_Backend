@@ -23,7 +23,7 @@ use App\Http\Controllers\{
 };
 use App\Models\Transaksi;
 
-//test debug
+//test debug cors
 Route::get('/debug-cors', function () {
     return response()->json([
         'cors_allowed_origins' => config('cors.allowed_origins'),
