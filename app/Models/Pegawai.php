@@ -19,7 +19,7 @@ class Pegawai extends Authenticatable
     protected $keyType = 'int'; // tipe datanya (int, string, dsb)
 
     public $timestamps = false;
-    
+
     protected $fillable = [
         'id_jabatan',
         'id_role',
@@ -45,5 +45,21 @@ class Pegawai extends Authenticatable
     public function jabatan()
     {
         return $this->belongsTo(Jabatan::class, 'id_jabatan');
+    }
+
+    public function toArray()
+    {
+        return $this->only([
+            'id_pegawai',
+            'nama_lengkap',
+            'email',
+            'id_jabatan',
+            'alamat',
+            'no_telepon',
+            'gender',
+            'tanggal_lahir',
+            'komisi_hunter',
+            'image_user',
+        ]);
     }
 }
