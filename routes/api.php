@@ -23,6 +23,12 @@ use App\Http\Controllers\{
 };
 use App\Models\Transaksi;
 
+Route::get('/debug-cors', function () {
+    return response()->json([
+        'cors_allowed_origins' => config('cors.allowed_origins'),
+    ]);
+});
+
 //FCM TOKEN
 Route::middleware('auth:sanctum')->post('/update-fcm-token-pembeli', [PembeliController::class, 'updateFcmTokenPembeli']);
 Route::middleware('auth:sanctum')->post('/update-fcm-token-penitip', [PenitipController::class, 'updateFcmTokenPenitip']);
@@ -154,7 +160,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/donasi/request/laporan', [LaporanController::class, 'laporanRequestDonasi']);
     Route::get('/laporan/transaksi-penitip/{id_penitip}/{bulan}/{tahun}', [LaporanController::class, 'laporanTransaksiPenitip']);
     Route::get('/laporan/kurir', [LaporanController::class, 'laporanKurir']);
-
 });
 
 // 👷‍♂️ PEGAWAI
