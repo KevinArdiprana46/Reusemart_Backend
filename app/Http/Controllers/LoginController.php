@@ -15,10 +15,15 @@ class LoginController extends Controller
 {
     public function login(Request $request)
     {
+        Log::info('Isi request login:', $request->all());
         $request->validate([
             'email'    => 'required|email',
             'password' => 'required|string',
         ]);
+
+        Log::info('Tipe data email:', gettype($request->email));
+        Log::info('Tipe data password:', gettype($request->password));
+
 
         $email = $request->email;
         $password = $request->password;
