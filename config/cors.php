@@ -6,7 +6,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+        'http://localhost:5173',
+        'https://reusemart-frontend-znaj.vercel.app',
+    ],
 
     'allowed_origins_patterns' => [],
 
