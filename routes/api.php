@@ -42,7 +42,7 @@ Route::middleware('auth:sanctum')->post('/update-fcm-token-pegawai', [PegawaiCon
 
 // 🔐 AUTH / REGISTER / LOGIN
 Route::middleware('auth:sanctum')->get('/user', fn(Request $request) => $request->user());
-Route::post('/Login', [LoginController::class, 'login'])->middleware('api');
+Route::post('/login', [LoginController::class, 'login'])->middleware('api');
 Route::post('/register', [PembeliController::class, 'register']);
 Route::post('/password/email', [ResetPasswordController::class, 'sendResetLinkEmail']);
 Route::post('/password/reset', [ResetPasswordController::class, 'reset']);
