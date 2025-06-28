@@ -57,7 +57,8 @@ class LoginController extends Controller
             if ($user->password !== $password) {
                 return response()->json(['message' => 'Password salah.'], 401);
             }
-        // } else {
+        }
+        // else {
         //     //gunakan Hash::check untuk user biasa
         //     if (!Hash::check($password, $user->password)) {
         //         Log::warning("Password tidak cocok untuk {$user->email}");
