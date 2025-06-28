@@ -50,47 +50,70 @@ class PegawaiController extends Controller
 
     public function store(Request $request)
     {
-        Log::info('Request store pegawai masuk', $request->all());
-        $validator = Validator::make($request->all(), [
-            'id_jabatan' => 'nullable|integer|exists:jabatan,id_jabatan',
-            'nama_lengkap' => 'required|string|max:255',
-            'alamat' => 'required|string|max:255',
-            'no_telepon' => 'required|string|max:20',
-            'email' => 'required|email|unique:pegawai,email',
-            'gender' => 'required|in:Laki-laki,Perempuan',
-            'tanggal_lahir' => 'required|date',
-            'password' => 'required|string|min:6',
-            'komisi_hunter' => 'nullable|numeric|min:0',
-            'image_user' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-        ]);
+        try {
+            Log::info('🚀 Masuk ke PegawaiController@store');
+            Log::info('Payload:', $request->all());
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+            foreach ($request->all() as $key => $value) {
+                Log::info("Field $key tipe: " . gettype($value));
+            }
+
+            $validator = Validator::make($request->all(), [
+                'id_jabatan' => 'nullable|integer|exists:jabatan,id_jabatan',
+                'nama_lengkap' => 'required|string|max:255',
+                'alamat' => 'required|string|max:255',
+                'no_telepon' => 'required|string|max:20',
+                'email' => 'required|email|unique:pegawai,email',
+                'gender' => 'required|in:Laki-laki,Perempuan',
+                'tanggal_lahir' => 'required|date',
+                'password' => 'required|string|min:6',
+                'komisi_hunter' => 'nullable|numeric|min:0',
+                'image_user' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                Log::warning('❌ Validasi gagal', $validator->errors()->toArray());
+                return response()->json(['errors' => $validator->errors()], 422);
+            }
+
+            $imagePath = $request->hasFile('image_user')
+                ? $request->file('image_user')->store('pegawai/image_user', 'public')
+                : null;
+
+            $pegawai = Pegawai::create([
+                'id_jabatan' => $request->id_jabatan,
+                'id_role' => 1,
+                'nama_lengkap' => $request->nama_lengkap,
+                'alamat' => $request->alamat,
+                'no_telepon' => $request->no_telepon,
+                'email' => $request->email,
+                'gender' => $request->gender,
+                'tanggal_lahir' => $request->tanggal_lahir,
+                'password' => Hash::make($request->password),
+                'komisi_hunter' => 0,
+                'image_user' => $imagePath ?? 'default.jpg',
+            ]);
+
+            Log::info('✅ Pegawai berhasil disimpan', ['id' => $pegawai->id_pegawai]);
+
+            return response()->json([
+                'message' => 'Pegawai berhasil ditambahkan',
+                'data' => $pegawai,
+                'image_url' => $imagePath ? asset('storage/' . $imagePath) : null,
+            ], 201);
+        } catch (\Throwable $e) {
+            Log::error('🔥 ERROR PegawaiController@store', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => 'Terjadi kesalahan internal.',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $imagePath = $request->hasFile('image_user')
-            ? $request->file('image_user')->store('pegawai/image_user', 'public')
-            : null;
-
-        $pegawai = Pegawai::create([
-            'id_jabatan' => $request->id_jabatan,
-            'id_role' => 1,
-            'nama_lengkap' => $request->nama_lengkap,
-            'alamat' => $request->alamat,
-            'no_telepon' => $request->no_telepon,
-            'email' => $request->email,
-            'gender' => $request->gender,
-            'tanggal_lahir' => $request->tanggal_lahir,
-            'password' => Hash::make($request->password),
-            'komisi_hunter' => 0,
-            'image_user' => $imagePath ?? 'default.jpg',
-        ]);
-
-        return response()->json([
-            'message' => 'Pegawai berhasil ditambahkan',
-            'data' => $pegawai,
-            'image_url' => $imagePath ? asset('storage/' . $imagePath) : null,
-        ], 201);
     }
 
     public function update(Request $request, $id)
