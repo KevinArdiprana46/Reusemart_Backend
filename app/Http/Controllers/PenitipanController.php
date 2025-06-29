@@ -18,11 +18,11 @@ class PenitipanController extends Controller
 {
     public function showAllPenitipan()
     {
-        $pegawai = auth()->user();
+        // $pegawai = auth()->user();
 
-        if (!$pegawai || $pegawai->id_jabatan !== 7) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // if (!$pegawai || $pegawai->id_jabatan !== 7) {
+        //     return response()->json(['message' => 'Unauthorized'], 403);
+        // }
 
         $penitipan = Penitipan::with(['penitip', 'barang'])
             ->whereHas('barang') // hanya ambil penitipan yang punya barang

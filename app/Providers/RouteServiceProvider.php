@@ -15,7 +15,7 @@ class RouteServiceProvider extends ServiceProvider
 
         ResetPassword::createUrlUsing(function ($notifiable, string $token) {
             $email = $notifiable->getEmailForPasswordReset();
-            return "http://localhost:5173/reset-password?token=$token&email=$email";
+            return "http://reusemartgggeming.my.id/reset-password?token=$token&email=$email";
         });
 
         $this->routes(function () {

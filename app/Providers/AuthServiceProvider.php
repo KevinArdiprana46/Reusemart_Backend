@@ -23,7 +23,7 @@ class AuthServiceProvider extends ServiceProvider
         $this->registerPolicies();
 
         ResetPassword::createUrlUsing(function ($user, string $token) {
-            return 'http://localhost:3000/reset-password?token=' . $token . '&email=' . urlencode($user->email);
+            return 'http://reusemartgggeming.my.id/reset-password?token=' . $token . '&email=' . urlencode($user->email);
         });
     }
 }

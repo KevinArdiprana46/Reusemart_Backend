@@ -21,7 +21,7 @@ class PembeliController extends Controller
 
         $pembeli = auth()->user(); // ambil pembeli dari token login
 
-        if (!($pembeli instanceof \App\Models\Pembeli)) {
+        if (!($pembeli instanceof Pembeli)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 

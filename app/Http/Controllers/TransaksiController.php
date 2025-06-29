@@ -1530,29 +1530,4 @@ public function konfirmasiBarangDiterima($id_transaksi)
             ];
         });
     }
-
-    public function storeRating(Request $request)
-    {
-        $request->validate([
-            'id_transaksi' => 'required|exists:transaksi,id_transaksi',
-            'rating' => 'required|numeric|min:1|max:5',
-        ]);
-
-        $transaksi = Transaksi::with('pembeli', 'detailTransaksi.barang')->find($request->id_transaksi);
-
-        if (!$transaksi || $transaksi->status_transaksi !== 'selesai') {
-            return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
-        }
-
-        $ratings = [];
-        foreach ($transaksi->detailTransaksi as $detail) {
-            $ratings[] = RatingBarang::create([
-                'id_barang' => $detail->id_barang,
-                'id_pembeli' => $transaksi->id_pembeli,
-                'rating' => $request->rating
-            ]);
-        }
-
-        return response()->json(['message' => 'Rating berhasil disimpan', 'data' => $ratings], 201);
-    }
 }
