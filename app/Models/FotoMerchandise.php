@@ -3,11 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\SafeToArray;
 
 class FotoMerchandise extends Model
 {
-    use SafeToArray;
     
     protected $table = 'foto_merchandise';
     public $primaryKey = 'id_fotoM';

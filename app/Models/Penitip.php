@@ -7,11 +7,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Traits\SafeToArray;
 
 class Penitip extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SafeToArray;
+    use HasApiTokens, HasFactory, Notifiable;
 
 
     protected $table = 'penitip'; // nama tabel di database

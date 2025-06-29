@@ -5,11 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Barang;
-use App\Traits\SafeToArray;
-
 class Donasi extends Model
 {
-    use SafeToArray;
 
     protected $table = 'donasi';
     protected $primaryKey = 'id_donasi';

@@ -4,11 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\SafeToArray;
 
 class FotoBarang extends Model
 {
-  use SafeToArray;
 
   protected $table = 'foto_barang';
   public $primaryKey = 'id_foto';

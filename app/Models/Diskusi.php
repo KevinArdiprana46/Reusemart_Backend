@@ -3,11 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\SafeToArray;
 
 class Diskusi extends Model
 {
-    use SafeToArray;
+
     
     protected $table = 'diskusi';
     protected $primaryKey = 'id_diskusi';

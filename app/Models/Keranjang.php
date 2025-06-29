@@ -9,7 +9,7 @@ use App\Traits\SafeToArray;
 
 class Keranjang extends Model
 {
-    use HasFactory, SafeToArray;
+    use HasFactory;
 
     protected $table = 'keranjang';
     protected $primaryKey = 'id';

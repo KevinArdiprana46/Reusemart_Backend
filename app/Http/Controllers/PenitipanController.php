@@ -307,11 +307,6 @@ class PenitipanController extends Controller
 
     public function index()
     {
-        $pegawai = auth()->user();
-
-        if (!$pegawai || $pegawai->id_jabatan !== 7) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
 
         $penitipan = Penitipan::with(['barang', 'penitip'])->get();
         return response()->json($penitipan);

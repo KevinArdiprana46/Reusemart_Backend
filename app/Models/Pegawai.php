@@ -7,11 +7,10 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\SafeToArray;
 
 class Pegawai extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SafeToArray;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'pegawai';
     protected $primaryKey = 'id_pegawai';

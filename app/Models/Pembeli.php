@@ -7,12 +7,11 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use App\Models\Alamat;
-use App\Traits\SafeToArray;
 
 
 class Pembeli extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, SafeToArray;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $table = 'pembeli'; // nama tabel di database
 
