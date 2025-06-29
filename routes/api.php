@@ -69,7 +69,7 @@ Route::post('/penitip/register', [PenitipController::class, 'register']);
 Route::prefix('penitip')->middleware('auth:sanctum')->group(function () {
     Route::get('/all', [PenitipController::class, 'getAllPenitip']);
     Route::get('/profile', [PenitipController::class, 'profile']);
-    Route::post('/update', [PenitipController::class, 'update']);
+    Route::post('update/{id}', [PenitipController::class, 'update']);
     Route::get('/search', [PenitipController::class, 'search']);
     Route::get('/', [PenitipController::class, 'index']);
     Route::post('/store', [PenitipController::class, 'store']);

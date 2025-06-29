@@ -51,7 +51,7 @@ class PenitipController extends Controller
             'nama_lengkap' => 'required|string|max:255',
             'gender' => 'required|in:L,P',
             'email' => 'required|email|unique:penitip,email',
-            'no_telepon' => 'required|string|max:20',
+            'no_telepon' => 'required|string|min:10',
             'password' => 'required|string|min:6',
             'tanggal_lahir' => 'required|date',
             'poin_sosial' => 'nullable|integer|min:0',
@@ -128,55 +128,56 @@ class PenitipController extends Controller
     }
 
     // ✅ Update Profil Penitip
-    public function update(Request $request)
+    public function update(Request $request, $id)
     {
-        $penitip = Penitip::find(auth()->id());
+        $penitip = Penitip::find($id);
 
         if (!$penitip) {
             return response()->json(['message' => 'Data penitip tidak ditemukan.'], 404);
         }
 
-        $request->validate([
-            'nama_lengkap' => 'sometimes|string|max:255',
-            'no_telepon' => 'sometimes|string|max:20',
+        $validator = Validator::make($request->all(), [
+            'nama_lengkap' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|email',
+            'password' => 'nullable|string|min:6',
             'tanggal_lahir' => 'sometimes|date',
-            'password' => 'sometimes|string|min:6',
+            'no_telepon' => 'sometimes|string|max:20',
+            'gender' => 'sometimes|in:L,P',
             'image_user' => 'sometimes|image|mimes:jpg,jpeg,png|max:2048',
-            'foto_ktp' => 'sometimes|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
-        // Hapus dan upload image_user baru
-        if ($request->hasFile('image_user') && $penitip->image_user !== 'default.jpg') {
-            $oldPath = public_path('storage/foto_penitip/' . $penitip->image_user);
-            if (file_exists($oldPath))
-                unlink($oldPath);
 
-            $imageName = time() . '_image_' . preg_replace('/\s+/', '_', $request->file('image_user')->getClientOriginalName());
-            $request->file('image_user')->move(public_path('storage/foto_penitip'), $imageName);
-            $penitip->image_user = $imageName;
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Hapus dan upload foto_ktp baru
-        if ($request->hasFile('foto_ktp')) {
-            $oldKtp = public_path('storage/foto_ktp/' . $penitip->foto_ktp);
-            if (file_exists($oldKtp))
-                unlink($oldKtp);
+        // Handle image_user upload
+        if ($request->hasFile('image_user')) {
+            // Hapus foto lama kalau ada
+            if ($penitip->image_user && $penitip->image_user !== 'default.jpg') {
+                Storage::disk('public')->delete('foto_penitip/' . $penitip->image_user);
+            }
 
-            $ktpName = time() . '_ktp_' . preg_replace('/\s+/', '_', $request->file('foto_ktp')->getClientOriginalName());
-            $request->file('foto_ktp')->move(public_path('storage/foto_ktp'), $ktpName);
-            $penitip->foto_ktp = $ktpName;
+            // Upload baru
+            $filename = time() . '_image_' . preg_replace('/\s+/', '_', $request->file('image_user')->getClientOriginalName());
+            $path = $request->file('image_user')->storeAs('foto_penitip', $filename, 'public');
+            $penitip->image_user = basename($path);
         }
 
-        $data = $request->except(['image_user', 'foto_ktp']);
-        if (!empty($data['password'])) {
-            $data['password'] = Hash::make($data['password']);
+        // Update field lain
+        $penitip->fill($request->except(['password', 'image_user']));
+
+        // Jika password diisi
+        if ($request->filled('password')) {
+            $penitip->password = Hash::make($request->password);
         }
 
-        $penitip->update($data);
+        $penitip->save();
 
         return response()->json([
-            'message' => 'Profil penitip berhasil diperbarui.',
-            'data' => $penitip
+            'message' => 'Data penitip berhasil diperbarui.',
+            'data' => $penitip,
+            'image_url' => $penitip->image_user ? asset('storage/foto_penitip/' . $penitip->image_user) : null,
         ]);
     }
 
@@ -310,7 +311,8 @@ class PenitipController extends Controller
         ], 200);
     }
 
-    public function tarikSaldo(Request $request){
+    public function tarikSaldo(Request $request)
+    {
         $user = Auth::user();
         if (!$user || $user->id_role != 3) {
             return response()->json(['message' => 'Unauthorized. Hanya admin yang dapat mengakses fitur ini.'], 403);
