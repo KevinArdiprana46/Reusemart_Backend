@@ -89,7 +89,7 @@ Route::prefix('donasi')->middleware('auth:sanctum')->group(function () {
     Route::get('/diterima', [DonasiController::class, 'getDonasiDiterima']);
     Route::get('/{id}', [DonasiController::class, 'show']);
     Route::put('/{id}', [DonasiController::class, 'update']);
-    Route::delete('/{id}', [DonasiController::class, 'destroy']);
+    Route::delete('delete/{id}', [DonasiController::class, 'destroy']);
     Route::get('/search', [DonasiController::class, 'search']);
     Route::post('/kirim/{id}', [DonasiController::class, 'kirimDonasi']);
     Route::put('/update-donasi/{id}', [DonasiController::class, 'updateDonasi']);

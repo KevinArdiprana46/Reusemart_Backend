@@ -21,7 +21,6 @@ class DonasiController extends Controller
     {
         $validated = $request->validate([
             'nama_barang' => 'required|string|max:255',
-            'kategori_barang' => 'required|string|max:255',
             'pesan_request' => 'required|string',
         ]);
 
@@ -32,7 +31,6 @@ class DonasiController extends Controller
 
         $donasi = Donasi::create([
             'nama_barang' => $validated['nama_barang'],
-            'kategori_barang' => $validated['kategori_barang'],
             'pesan_request' => $validated['pesan_request'],
             'status_donasi' => 'diminta',
             'tanggal_donasi' => null,
