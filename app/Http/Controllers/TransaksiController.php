@@ -135,7 +135,7 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
         }
 
-        if ($transaksi->status_transaksi !== 'dibayar') {
+        if ($transaksi->status_transaksi !== 'disiapkan') {
             return response()->json(['message' => 'Transaksi tidak valid untuk diverifikasi.'], 400);
         }
 
@@ -153,6 +153,10 @@ class TransaksiController extends Controller
             $detailPenitipanList = $barang->detailPenitipan ?? [];
             Log::info("$barang");
             foreach ($detailPenitipanList as $detailPenitipan) {
+                if(!$detailPenitipan || !is_object($detailPenitipan)){
+                    Log::warning("detail bukan object", [$detailPenitipan]);
+                    continue;
+                }
                 $penitipan = $detailPenitipan->penitipan;
                 $penitip = $penitipan?->penitip;
 
