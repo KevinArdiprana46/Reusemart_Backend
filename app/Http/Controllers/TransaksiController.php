@@ -153,7 +153,7 @@ class TransaksiController extends Controller
             $detailPenitipanList = $barang->detailPenitipan ?? [];
             Log::info("$barang");
             foreach ($detailPenitipanList as $detailPenitipan) {
-                if(!$detailPenitipan || !is_object($detailPenitipan)){
+                if (!$detailPenitipan || !is_object($detailPenitipan)) {
                     Log::warning("detail bukan object", [$detailPenitipan]);
                     continue;
                 }
@@ -356,11 +356,13 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        $transaksi = Transaksi::with(['detailtransaksi.barang'])
-            ->whereHas('detailtransaksi.barang', function ($query) use ($penitip) {
+        $transaksi = Transaksi::with([
+            'detailtransaksi.barang.detailPenitipan.penitipan.penitip'
+        ])
+            ->where('status_transaksi', 'selesai')
+            ->whereHas('detailtransaksi.barang.detailPenitipan.penitipan', function ($query) use ($penitip) {
                 $query->where('id_penitip', $penitip->id_penitip);
             })
-            ->where('status_transaksi', 'selesai')
             ->orderByDesc('created_at')
             ->get();
 
@@ -634,23 +636,23 @@ class TransaksiController extends Controller
 
 
 
- public function transaksiGudang()
-{
-    $transaksi = Transaksi::with([
-        'pembeli',
-        'detailtransaksi.barang.foto_barang',
-    ])
-        ->whereIn('status_transaksi', ['disiapkan', 'dikirim', 'belum selesai'])
-        ->where(function ($query) {
-            $query->where('jenis_pengiriman', 'like', '%kurir%')
-                  ->orWhere('jenis_pengiriman', 'like', '%ambil%');
-        })
-        ->whereIn('status_pengiriman', ['belum dijadwalkan', 'dijadwalkan'])
-        ->orderBy('created_at', 'desc')
-        ->get();
+    public function transaksiGudang()
+    {
+        $transaksi = Transaksi::with([
+            'pembeli',
+            'detailtransaksi.barang.foto_barang',
+        ])
+            ->whereIn('status_transaksi', ['disiapkan', 'dikirim', 'belum selesai'])
+            ->where(function ($query) {
+                $query->where('jenis_pengiriman', 'like', '%kurir%')
+                    ->orWhere('jenis_pengiriman', 'like', '%ambil%');
+            })
+            ->whereIn('status_pengiriman', ['belum dijadwalkan', 'dijadwalkan'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
-    return response()->json($transaksi);
-}
+        return response()->json($transaksi);
+    }
 
 
     // public function kirimBarang($id_transaksi)
@@ -713,9 +715,9 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
         }
 
-       if (stripos($transaksi->jenis_pengiriman, 'kurir') === false) {
-    return response()->json(['message' => 'Transaksi ini bukan jenis pengiriman dengan kurir Reusemart'], 422);
-}
+        if (stripos($transaksi->jenis_pengiriman, 'kurir') === false) {
+            return response()->json(['message' => 'Transaksi ini bukan jenis pengiriman dengan kurir Reusemart'], 422);
+        }
 
 
         $jadwal = Carbon::parse($transaksi->tanggal_pelunasan);
@@ -813,9 +815,9 @@ class TransaksiController extends Controller
             return response()->json(['message' => 'Transaksi tidak ditemukan'], 404);
         }
 
-if (strcasecmp($transaksi->jenis_pengiriman, 'Pengambilan Mandiri') !== 0) {
-    return response()->json(['message' => 'Jenis pengiriman bukan untuk ambil sendiri'], 422);
-}
+        if (strcasecmp($transaksi->jenis_pengiriman, 'Pengambilan Mandiri') !== 0) {
+            return response()->json(['message' => 'Jenis pengiriman bukan untuk ambil sendiri'], 422);
+        }
 
         $transaksi->status_transaksi = 'belum selesai';
         $transaksi->status_pengiriman = 'belum dijadwalkan';
@@ -923,64 +925,64 @@ if (strcasecmp($transaksi->jenis_pengiriman, 'Pengambilan Mandiri') !== 0) {
         ]);
     }
 
-public function konfirmasiBarangDiterima($id_transaksi)
-{
-    $pegawai = auth()->user();
+    public function konfirmasiBarangDiterima($id_transaksi)
+    {
+        $pegawai = auth()->user();
 
-    if (!$pegawai || $pegawai->id_jabatan !== 7) {
-        return response()->json(['message' => 'Unauthorized'], 403);
-    }
+        if (!$pegawai || $pegawai->id_jabatan !== 7) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
-    $transaksi = Transaksi::with(['pembeli', 'penitip'])->find($id_transaksi);
+        $transaksi = Transaksi::with(['pembeli', 'penitip'])->find($id_transaksi);
 
-    if (!$transaksi) {
-        return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
-    }
+        if (!$transaksi) {
+            return response()->json(['message' => 'Transaksi tidak ditemukan.'], 404);
+        }
 
-    if ($transaksi->status_transaksi === 'selesai') {
-        return response()->json(['message' => 'Transaksi sudah selesai.'], 400);
-    }
+        if ($transaksi->status_transaksi === 'selesai') {
+            return response()->json(['message' => 'Transaksi sudah selesai.'], 400);
+        }
 
-    $transaksi->status_transaksi = 'selesai';
-    $transaksi->save();
+        $transaksi->status_transaksi = 'selesai';
+        $transaksi->save();
 
-    Log::info("✅ Transaksi {$transaksi->id_transaksi} dikonfirmasi selesai oleh pegawai gudang.");
+        Log::info("✅ Transaksi {$transaksi->id_transaksi} dikonfirmasi selesai oleh pegawai gudang.");
 
-    // Kirim email ke pembeli
-    try {
-        if ($transaksi->pembeli && $transaksi->pembeli->email) {
-            Mail::raw(
-                "Halo {$transaksi->pembeli->nama_lengkap},\n\nBarang dengan nota {$transaksi->nomor_nota} telah berhasil diterima. Terima kasih telah berbelanja di ReuseMart.",
-                function ($message) use ($transaksi) {
-                    $message->to($transaksi->pembeli->email)
+        // Kirim email ke pembeli
+        try {
+            if ($transaksi->pembeli && $transaksi->pembeli->email) {
+                Mail::raw(
+                    "Halo {$transaksi->pembeli->nama_lengkap},\n\nBarang dengan nota {$transaksi->nomor_nota} telah berhasil diterima. Terima kasih telah berbelanja di ReuseMart.",
+                    function ($message) use ($transaksi) {
+                        $message->to($transaksi->pembeli->email)
                             ->subject('📦 Barang Telah Diterima');
-                }
-            );
+                    }
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error("Gagal kirim email ke pembeli: " . $e->getMessage());
         }
-    } catch (\Exception $e) {
-        Log::error("Gagal kirim email ke pembeli: " . $e->getMessage());
-    }
 
-    // Kirim email ke penitip
-    try {
-        if ($transaksi->penitip && $transaksi->penitip->email) {
-            Mail::raw(
-                "Halo {$transaksi->penitip->nama_lengkap},\n\nBarang penitipan Anda dengan transaksi {$transaksi->nomor_nota} telah berhasil diambil oleh pembeli.",
-                function ($message) use ($transaksi) {
-                    $message->to($transaksi->penitip->email)
+        // Kirim email ke penitip
+        try {
+            if ($transaksi->penitip && $transaksi->penitip->email) {
+                Mail::raw(
+                    "Halo {$transaksi->penitip->nama_lengkap},\n\nBarang penitipan Anda dengan transaksi {$transaksi->nomor_nota} telah berhasil diambil oleh pembeli.",
+                    function ($message) use ($transaksi) {
+                        $message->to($transaksi->penitip->email)
                             ->subject('📢 Barang Anda Telah Diambil Pembeli');
-                }
-            );
+                    }
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error("Gagal kirim email ke penitip: " . $e->getMessage());
         }
-    } catch (\Exception $e) {
-        Log::error("Gagal kirim email ke penitip: " . $e->getMessage());
-    }
 
-    return response()->json([
-        'message' => 'Transaksi berhasil dikonfirmasi selesai.',
-        'data' => $transaksi,
-    ]);
-}
+        return response()->json([
+            'message' => 'Transaksi berhasil dikonfirmasi selesai.',
+            'data' => $transaksi,
+        ]);
+    }
 
 
     public function cekTransaksiHangus()
